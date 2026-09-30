@@ -17,7 +17,7 @@ jobs:
       - name: Accepter les licences Android
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - name: Outils de compilation
-        run: sudo apt-get update && sudo apt-get install -y ninja-build
+        run: sudo apt-get update && sudo apt-get install -y ninja-build glslang-tools
       - name: Compilation
         run: sh .ci/android/build.sh -t standard -b Debug
       - uses: actions/upload-artifact@v4
