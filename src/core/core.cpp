@@ -11,6 +11,8 @@
 #include "audio_core/audio_core.h"
 #include "common/fs/fs.h"
 #include "common/logging.h"
+#include "common/nextendo_account.h"
+#include "common/fs/path_util.h"
 #include "common/adpf.h"
 #include "common/settings.h"
 #include "common/settings_enums.h"
@@ -210,9 +212,11 @@ struct System::Impl {
 
         local_clock->SetCurrentTime(new_time);
 
+        // [Nextendo] SetCurrentTime must come before GetSystemClockContext: the persisted
+        // context is what IsAccuracySufficient() later measures elapsed time against.
+        network_clock->SetCurrentTime(new_time);
         network_clock->GetSystemClockContext(&context);
         settings_service->SetNetworkSystemClockContext(context);
-        network_clock->SetCurrentTime(new_time);
     }
 
     void Run() {
@@ -408,6 +412,10 @@ struct System::Impl {
             game_info.version = title_version;
             room_member->SendGameInfo(game_info);
         }
+
+        // [Nextendo] Mirror the linked account into the emulated SD card for the game.
+        Common::NextendoAccount::WriteGuestBridge(
+            Common::FS::GetEdenPath(Common::FS::EdenPath::SDMCDir));
         return SystemResultStatus::Success;
     }
 
