@@ -17,7 +17,7 @@ jobs:
       - name: Licences Android
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - name: Outils de compilation
-        run: sudo apt-get update && sudo apt-get install -y ninja-build
+        run: sudo apt-get update && sudo apt-get install -y ninja-build glslang-tools
       - name: Compilation (essai 1)
         id: build1
         continue-on-error: true
