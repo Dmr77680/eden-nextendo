@@ -7,6 +7,12 @@
 add_library(web_service STATIC
     announce_room_json.cpp
     announce_room_json.h
+    mk8d_country_flags.cpp
+    mk8d_country_flags.h
+    nextendo_api.cpp
+    nextendo_api.h
+    population_scraper_client.cpp
+    population_scraper_client.h
     verify_login.cpp
     verify_login.h
     verify_user_jwt.cpp

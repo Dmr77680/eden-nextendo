@@ -1079,6 +1079,12 @@ add_library(core STATIC
     hle/service/ssl/ssl.h
     hle/service/ssl/ssl_backend.h
     hle/service/ssl/ssl_types.h
+    hle/service/ssl/ssl_pending_registry.cpp
+    hle/service/ssl/ssl_pending_registry.h
+    hle/service/ssl/nextendo_nat_rewrite.cpp
+    hle/service/ssl/nextendo_nat_rewrite.h
+    loader/nextendo_s3_patches.cpp
+    loader/nextendo_s3_patches.h
     hle/service/tma/tma.cpp
     hle/service/tma/tma.h
     hle/service/usb/usb.cpp
