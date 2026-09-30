@@ -1,0 +1,170 @@
+// SPDX-FileCopyrightText: Copyright 2026 citron Emulator Project
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+#include <span>
+#include <string_view>
+
+#include "common/hex_util.h"
+#include "common/logging.h"
+#include "core/file_sys/ips_layer.h"
+#include "core/file_sys/vfs/vfs_vector.h"
+#include "core/loader/nextendo_s3_patches.h"
+
+namespace Loader::NextendoS3Patches {
+
+namespace {
+
+// Bytes match NextendoNetwork/Ryujinx-Nextendo's NextendoS3Patches.cs. Offsets are Ryujinx's
+// stored constants as-is (reverted from a +0x100 adjustment -- see project_splatoon3_connectivity
+// memory for why that theory didn't pan out against a packet capture).
+
+// Bypasses the certificate check: the game pins Nintendo's certificates and refuses ours.
+// 19 bytes, fingerprint 219ee0cfea21fd4b...
+constexpr std::array<u8, 19> kCertificateBypass{{
+    0x49, 0x50, 0x53, 0x33, 0x32,       // "IPS32"
+    0x00, 0x15, 0x7B, 0x20, 0x00, 0x04, // offset 0x00157B20, 4 bytes
+    0x2A, 0x00, 0x80, 0x52,
+    0x45, 0x45, 0x4F, 0x46, // "EEOF"
+}};
+
+// Fixes the hostname the game presents to its peer. 29 bytes, fingerprint aa8a453637092346...
+constexpr std::array<u8, 29> kPeerHostnameFix{{
+    0x49, 0x50, 0x53, 0x33, 0x32,       // "IPS32"
+    0x00, 0x14, 0xE1, 0xB0, 0x00, 0x04, // offset 0x0014E1B0, 4 bytes
+    0x1F, 0x20, 0x03, 0xD5,
+    0x00, 0x14, 0xDD, 0x80, 0x00, 0x04, // offset 0x0014DD80, 4 bytes
+    0xF4, 0x03, 0x1F, 0x2A,
+    0x45, 0x45, 0x4F, 0x46, // "EEOF"
+}};
+
+// Super Mario Bros. Wonder v1.2.1, build FF773E90972D544EB79406EAA65396D53C43EFB9.
+constexpr std::array<u8, 19> kCertificateWonder121{{
+    0x49, 0x50, 0x53, 0x33, 0x32,
+    0x00, 0xB0, 0x36, 0x28, 0x00, 0x04, // offset 0x00B03628, 4 bytes
+    0x2A, 0x00, 0x80, 0x52,
+    0x45, 0x45, 0x4F, 0x46,
+}};
+
+constexpr std::array<u8, 29> kPeerNameWonder121{{
+    0x49, 0x50, 0x53, 0x33, 0x32,
+    0x00, 0xB0, 0x2C, 0xBC, 0x00, 0x04, // offset 0x00B02CBC, 4 bytes
+    0x1F, 0x20, 0x03, 0xD5,
+    0x00, 0xB0, 0x2B, 0xA4, 0x00, 0x04, // offset 0x00B02BA4, 4 bytes
+    0x1F, 0x20, 0x03, 0xD5,
+    0x45, 0x45, 0x4F, 0x46,
+}};
+
+// Nintendo 64 - Nintendo Classics v4.2.0, build 44EFA84EE9C32B466EA27215D3D91DFD0EBAE625.
+constexpr std::array<u8, 19> kCertificateN64v420{{
+    0x49, 0x50, 0x53, 0x33, 0x32,
+    0x00, 0x29, 0xDB, 0xE0, 0x00, 0x04, // offset 0x0029DBE0, 4 bytes
+    0x2A, 0x00, 0x80, 0x52,
+    0x45, 0x45, 0x4F, 0x46,
+}};
+
+constexpr std::array<u8, 29> kPeerHostnameFixN64v420{{
+    0x49, 0x50, 0x53, 0x33, 0x32,
+    0x00, 0x29, 0x42, 0x70, 0x00, 0x04, // offset 0x00294270, 4 bytes
+    0x1F, 0x20, 0x03, 0xD5,
+    0x00, 0x29, 0x3E, 0x40, 0x00, 0x04, // offset 0x00293E40, 4 bytes
+    0xF4, 0x03, 0x1F, 0x2A,
+    0x45, 0x45, 0x4F, 0x46,
+}};
+
+// METAL GEAR SOLID: Peace Walker - Master Collection Version, build BCA1A793E41A4836EF3C03286B18E816EEC62338.
+constexpr std::array<u8, 19> kCertificatePeaceWalker{{
+    0x49, 0x50, 0x53, 0x33, 0x32,
+    0x00, 0xB2, 0xA1, 0xC0, 0x00, 0x04, // offset 0x00B2A1C0, 4 bytes
+    0x2A, 0x00, 0x80, 0x52,
+    0x45, 0x45, 0x4F, 0x46,
+}};
+
+constexpr std::array<u8, 29> kPeerHostnameFixPeaceWalker{{
+    0x49, 0x50, 0x53, 0x33, 0x32,
+    0x00, 0xB2, 0x08, 0x50, 0x00, 0x04, // offset 0x00B20850, 4 bytes
+    0x1F, 0x20, 0x03, 0xD5,
+    0x00, 0xB2, 0x04, 0x20, 0x00, 0x04, // offset 0x00B20420, 4 bytes
+    0xF4, 0x03, 0x1F, 0x2A,
+    0x45, 0x45, 0x4F, 0x46,
+}};
+
+struct KnownBuild {
+    std::string_view build_id_hex; // Uppercase, trailing zero bytes stripped -- same convention
+                                    // PatchManager::PatchNSO already uses for build_id matching.
+    std::span<const std::span<const u8>> patches;
+};
+
+constexpr std::array<std::span<const u8>, 2> kSplatoon3PeerPatches{{kCertificateBypass, kPeerHostnameFix}};
+constexpr std::array<std::span<const u8>, 1> kSplatoon3CertOnlyPatches{{kCertificateBypass}};
+constexpr std::array<std::span<const u8>, 2> kWonder121Patches{{kCertificateWonder121, kPeerNameWonder121}};
+constexpr std::array<std::span<const u8>, 2> kN64v420Patches{{kCertificateN64v420, kPeerHostnameFixN64v420}};
+constexpr std::array<std::span<const u8>, 2> kPeaceWalkerPatches{{kCertificatePeaceWalker, kPeerHostnameFixPeaceWalker}};
+
+// NSO build ID -> which patches it needs. An unrecognized build gets nothing, exactly like an
+// .ips file whose name didn't match any program. Splatoon 3 v11.3.0's build was verified
+// byte-identical to v11.2.0's at all three patch offsets before adding it here.
+constexpr std::array<KnownBuild, 6> kKnownBuilds{{
+    {"6830B3A12406CB4716FEC5ADDC35D3E2DC92D212", kSplatoon3PeerPatches},
+    {"726D2B882DD9EF10F4A9D73EED088740630FB6C8", kSplatoon3CertOnlyPatches},
+    {"28C4287AEE36F7499DA60F3E68B54C70DA382D75", kSplatoon3PeerPatches},
+    {"FF773E90972D544EB79406EAA65396D53C43EFB9", kWonder121Patches},
+    {"44EFA84EE9C32B466EA27215D3D91DFD0EBAE625", kN64v420Patches},
+    {"BCA1A793E41A4836EF3C03286B18E816EEC62338", kPeaceWalkerPatches},
+}};
+
+FileSys::VirtualFile MakeIpsFile(std::span<const u8> bytes) {
+    return std::make_shared<FileSys::VectorVfsFile>(std::vector<u8>(bytes.begin(), bytes.end()),
+                                                     "nextendo_s3.ips32");
+}
+
+// Applies one patch, logging (not throwing) on failure -- a patch that can't apply shouldn't
+// stop the game from booting at all, just from working online, same as a bad exefs_patches file
+// would silently no-op today.
+std::vector<u8> ApplyOne(std::vector<u8> nso, std::span<const u8> ips_bytes, size_t index) {
+    auto in_file = std::make_shared<FileSys::VectorVfsFile>(nso, "nso");
+    const auto patched = FileSys::PatchIPS(in_file, MakeIpsFile(ips_bytes));
+    if (patched == nullptr) {
+        LOG_ERROR(Loader, "[Nextendo] NPLN: built-in patch #{} failed to apply", index);
+        return nso;
+    }
+    return patched->ReadAllBytes();
+}
+
+} // namespace
+
+std::vector<u8> ApplyIfMatch(const std::array<u8, 0x20>& build_id, std::vector<u8> nso,
+                             std::string_view module_name) {
+    const auto build_id_raw = Common::HexToString(build_id);
+    const auto build_id_hex = build_id_raw.substr(0, build_id_raw.find_last_not_of('0') + 1);
+
+    for (const auto& known : kKnownBuilds) {
+        if (build_id_hex != known.build_id_hex) {
+            continue;
+        }
+
+        for (size_t i = 0; i < known.patches.size(); ++i) {
+            nso = ApplyOne(std::move(nso), known.patches[i], i);
+        }
+
+        LOG_INFO(Loader, "[Nextendo] NPLN: {} built-in patch(es) applied (build {})",
+                 known.patches.size(), build_id_hex);
+        return nso;
+    }
+
+    // Rien ne correspond. Sur « main », c'est fatal pour l'en ligne : on le dit fort, une fois.
+    if (module_name == "main") {
+        LOG_ERROR(Loader,
+                  "[Nextendo] NPLN : AUCUN correctif integre pour ce build ({}). L'en ligne "
+                  "NE FONCTIONNERA PAS : l'epinglage de certificat du jeu reste actif, la "
+                  "connexion "
+                  "NPLN echouera en 2321-4992 apres une poignee de main TLS pourtant reussie. "
+                  "Cause la plus frequente : l'ExeFS de la mise a jour n'est pas applique et c'est "
+                  "l'executable du JEU DE BASE qui tourne. Verifiez que la mise a jour est bien "
+                  "installee ET active pour ce titre.",
+                  build_id_hex);
+    }
+
+    return nso;
+}
+
+} // namespace Loader::NextendoS3Patches
