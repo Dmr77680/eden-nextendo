@@ -21,7 +21,7 @@ jobs:
       - name: Compilation (essai 1)
         id: build1
         continue-on-error: true
-        run: sh .ci/android/build.sh -t standard -b Debug
+        run: sh .ci/android/build.sh -t standard -b RelWithDebInfo
       - name: Verification des fichiers SDL
         if: always()
         run: |
@@ -31,7 +31,7 @@ jobs:
           find .cache -iname 'SDL.java' 2>/dev/null | head
       - name: Compilation (essai 2)
         if: steps.build1.outcome == 'failure'
-        run: sh .ci/android/build.sh -t standard -b Debug
+        run: sh .ci/android/build.sh -t standard -b RelWithDebInfo
       - uses: actions/upload-artifact@v4
         if: always()
         with:

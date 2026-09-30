@@ -11,6 +11,7 @@
 #include "common/fs/file.h"
 #include "common/fs/fs.h"
 #include "common/fs/path_util.h"
+#include "common/logging.h"
 #include "common/nextendo_account.h"
 #include "common/settings.h"
 #include "common/string_util.h"
@@ -188,6 +189,8 @@ void UpdateUsername(std::string_view username) {
 void WriteGuestBridge(const std::filesystem::path& sdmc_root) {
     std::lock_guard lock{g_mutex};
     EnsureLoaded();
+    LOG_INFO(Core, "[Nextendo] WriteGuestBridge: account_file={} linked={} pid={} sdmc_root={}",
+             FilePath().string(), g_pid != 0, g_pid, sdmc_root.string());
 
     u64 pid = g_pid;
     std::string username = g_username;
