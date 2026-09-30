@@ -1,3 +1,4 @@
+cat > .github/workflows/android.yml << 'EOF'
 name: Build Android
 on:
   workflow_dispatch:
@@ -14,13 +15,30 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - name: Accepter les licences Android
-        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+      - uses: android-actions/setup-android@v3
       - name: Outils de compilation
-        run: sudo apt-get update && sudo apt-get install -y ninja-build glslang-tools
-      - name: Compilation
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Compilation (essai 1)
+        id: build1
+        continue-on-error: true
+        run: sh .ci/android/build.sh -t standard -b Debug
+      - name: Verification des fichiers SDL
+        if: always()
+        run: |
+          echo "--- externals/generated ---"
+          ls -R externals/generated 2>&1 | head -30
+          echo "--- SDL.java dans le cache CPM ---"
+          find .cache -iname 'SDL.java' 2>/dev/null | head
+      - name: Compilation (essai 2)
+        if: steps.build1.outcome == 'failure'
         run: sh .ci/android/build.sh -t standard -b Debug
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: eden-nextendo-apk
           path: artifacts/*
+          if-no-files-found: warn
+EOF
+git add .github/workflows/android.yml
+git commit -m "ci: diagnostic SDL et second essai de compilation"
+git push origin HEAD:main
