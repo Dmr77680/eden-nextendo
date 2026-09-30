@@ -72,18 +72,14 @@ void Controller::CloneCurrentObjectEx(HLERequestContext& ctx) {
 void Controller::QueryPointerBufferSize(HLERequestContext& ctx) {
     LOG_DEBUG(Service, "called");
 
-    auto* process = Kernel::GetCurrentProcessPointer(kernel);
-    ASSERT(process != nullptr);
-
-    u32 buffer_size = process->GetPointerBufferSize();
-    if (buffer_size > (std::numeric_limits<u16>::max)()) {
-        LOG_WARNING(Service, "Pointer buffer size exceeds u16 max, clamping");
-        buffer_size = (std::numeric_limits<u16>::max)();
-    }
+    // [Nextendo] 0xF000 is the maximum a 16-bit HIPC size field can express. Titles that open
+    // many concurrent sessions (NPLN gRPC streams) overflow a smaller pointer buffer and fail
+    // to enter online play.
+    constexpr u16 pointer_buffer_size = 0xF000;
 
     IPC::ResponseBuilder rb{ctx, 3};
     rb.Push(ResultSuccess);
-    rb.Push<u16>(static_cast<u16>(buffer_size));
+    rb.Push<u16>(pointer_buffer_size);
 }
 
 void Controller::SetPointerBufferSize(HLERequestContext& ctx) {
