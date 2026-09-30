@@ -14,7 +14,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - uses: android-actions/setup-android@v3
+      - name: Licences Android
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - name: Outils de compilation
         run: sudo apt-get update && sudo apt-get install -y ninja-build
       - name: Compilation (essai 1)
