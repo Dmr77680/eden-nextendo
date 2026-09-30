@@ -934,6 +934,18 @@ struct Values {
                                            Category::Network};
     SwitchableSetting<bool> airplane_mode{linkage, false, "airplane_mode", Category::Network};
 
+    // [Nextendo]
+    Setting<bool> enable_nextendo{linkage, true, "enable_nextendo", Category::Network};
+    Setting<std::string> nextendo_server_ip{linkage, "51.178.29.194", "nextendo_server_ip",
+                                            Category::Network};
+    Setting<std::string> nextendo_nat_ip{linkage, "164.132.111.120", "nextendo_nat_ip",
+                                         Category::Network};
+    Setting<std::string> nextendo_pid{linkage, "", "nextendo_pid", Category::Network};
+    Setting<bool> nextendo_cloud_sync_enabled{linkage, true, "nextendo_cloud_sync_enabled",
+                                              Category::Network};
+    Setting<bool> nextendo_friend_notifications{linkage, true, "nextendo_friend_notifications",
+                                                Category::Network};
+
     // WebService
     Setting<std::string> web_api_url{linkage, "api.ynet-fun.xyz", "web_api_url",
                                      Category::WebService};
