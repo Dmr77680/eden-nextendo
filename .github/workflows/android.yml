@@ -1,4 +1,3 @@
-cat > .github/workflows/android.yml << 'EOF'
 name: Build Android
 on:
   workflow_dispatch:
@@ -38,7 +37,3 @@ jobs:
           name: eden-nextendo-apk
           path: artifacts/*
           if-no-files-found: warn
-EOF
-git add .github/workflows/android.yml
-git commit -m "ci: diagnostic SDL et second essai de compilation"
-git push origin HEAD:main
