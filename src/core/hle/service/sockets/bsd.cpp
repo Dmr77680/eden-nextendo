@@ -17,6 +17,7 @@
 #include "core/hle/kernel/k_thread.h"
 #include "core/hle/service/ipc_helpers.h"
 #include "core/hle/service/sockets/bsd.h"
+#include "core/hle/service/sockets/sfdnsres.h"
 #include "core/hle/service/sockets/sockets_translate.h"
 #include "core/internal_network/network.h"
 #include "core/internal_network/socket_proxy.h"
@@ -688,7 +689,24 @@ Errno BSD_USA::ConnectImpl(s32 fd, std::span<const u8> addr) {
 
     auto addr_in = GetValue<SockAddrIn>(addr);
 
-    const Errno result = Translate(file_descriptors[fd]->socket->Connect(Translate(addr_in)));
+    auto translated_addr = Translate(addr_in);
+
+    // [Nextendo] Some titles (Splatoon 3's gRPC stack) lose the resolved address in
+    // their own connection plumbing and call connect() with a zeroed IP, keeping only
+    // the port. Recover it from what GetAddrInfo recorded for that exact port. Only
+    // populated for a Nextendo-redirected hostname, so other sockets are untouched.
+    static constexpr std::array<u8, 4> zero_addr{0, 0, 0, 0};
+    if (addr_in.ip == zero_addr && translated_addr.portno != 0) {
+        if (const auto recovered = GetLastIpForPort(translated_addr.portno)) {
+            LOG_INFO(Service,
+                     "[Nextendo] Connect fd={} address was lost (zeroed), recovered {} for "
+                     "port {} from an earlier redirected resolution",
+                     fd, Network::IPv4AddressToString(*recovered), translated_addr.portno);
+            translated_addr.ip = *recovered;
+        }
+    }
+
+    const Errno result = Translate(file_descriptors[fd]->socket->Connect(translated_addr));
 
     if (result == Errno::ISCONN) {
         LOG_DEBUG(Service, "returned ISCONN - socket already connected");
