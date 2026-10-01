@@ -64,11 +64,20 @@ NSD::NSD(Core::System& system_, const char* name) : ServiceFramework{system_, na
 }
 
 static std::string ResolveImpl(const std::string& fqdn_in) {
-    // The real implementation makes various substitutions.
-    // For now we just return the string as-is, which is good enough when not
-    // connecting to real Nintendo servers.
-    LOG_WARNING(Service, "(STUBBED) called, fqdn_in={}", fqdn_in);
-    return fqdn_in;
+    std::string fqdn = fqdn_in;
+    if (fqdn == "api.accounts.nintendo.com" || fqdn == "accounts.nintendo.com") {
+        fqdn = "e0d67c509fb203858ebcb2fe3f88c2aa.baas.nintendo.com";
+    } else if (fqdn == "e97b8a9d672e4ce4845ec6947cd66ef6-sb-api.accounts.nintendo.com" ||
+               fqdn == "e97b8a9d672e4ce4845ec6947cd66ef6-sb.accounts.nintendo.com") {
+        fqdn = "e97b8a9d672e4ce4845ec6947cd66ef6-sb.baas.nintendo.com";
+    } else {
+        const auto pos = fqdn.find('%');
+        if (pos != std::string::npos) {
+            fqdn.replace(pos, 1, "lp1");
+        }
+    }
+    LOG_INFO(Service, "[NSD] ResolveImpl: fqdn_in='{}' -> fqdn_out='{}'", fqdn_in, fqdn);
+    return fqdn;
 }
 
 static Result ResolveCommon(const std::string& fqdn_in, std::array<char, 0x100>& fqdn_out) {
