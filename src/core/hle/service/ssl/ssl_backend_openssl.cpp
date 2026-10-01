@@ -4,7 +4,13 @@
 // SPDX-FileCopyrightText: Copyright 2023 yuzu Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <algorithm>
+#include <cctype>
 #include <mutex>
+#include <span>
+#include <string>
+#include <string_view>
+#include <vector>
 
 #include <openssl/bio.h>
 #include <openssl/err.h>
@@ -15,6 +21,7 @@
 #include "common/hex_util.h"
 #include "common/string_util.h"
 
+#include "core/hle/service/sockets/sfdnsres.h"
 #include "core/hle/service/ssl/ssl_backend.h"
 #include "core/internal_network/network.h"
 #include "core/internal_network/sockets.h"
@@ -196,7 +203,69 @@ public:
         }
     }
 
-    Result DoHandshake() override {
+    // [Nextendo] NPLN (gRPC/HTTP2) hosts need h2; the other redirected hosts need http/1.1 only.
+    static bool IsNplnHost(std::string_view hostname) {
+        std::string lower(hostname);
+        std::transform(lower.begin(), lower.end(), lower.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        return lower.find("npln") != std::string::npos ||
+               lower.find("gs.nintendo.net") != std::string::npos;
+    }
+
+    static std::vector<unsigned char> BuildAlpnWire(std::span<const std::string> protocols) {
+        std::vector<unsigned char> wire;
+        for (const std::string& proto : protocols) {
+            if (proto != "h2" && proto != "http/1.1") {
+                continue;
+            }
+            wire.push_back(static_cast<unsigned char>(proto.size()));
+            wire.insert(wire.end(), proto.begin(), proto.end());
+        }
+        return wire;
+    }
+
+    Result DoHandshake(std::span<const std::string> requested_alpn_protos) override {
+        // [Nextendo] A connection to an IP recorded by the DNS service as a Nextendo redirect
+        // gets a recovered SNI host, the right ALPN, and no certificate verification (the
+        // server's certificate is not one the console would trust). Other connections are
+        // left exactly as they were.
+        bool redirected = false;
+        if (socket) {
+            auto [peer_addr, peer_err] = socket->GetPeerName();
+            if (peer_err == Network::Errno::SUCCESS) {
+                const std::string ip_str = Network::IPv4AddressToString(peer_addr.ip);
+                std::string redirected_host = Service::Sockets::GetLastHostForIp(ip_str);
+                redirected = !redirected_host.empty();
+                if (redirected && !SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name)) {
+                    const auto pos = redirected_host.find('%');
+                    if (pos != std::string::npos) {
+                        redirected_host.replace(pos, 1, "lp1");
+                    }
+                    LOG_INFO(Service_SSL, "[Nextendo] DoHandshake SNI injection host '{}' for IP {}",
+                             redirected_host, ip_str);
+                    SSL_set1_host(ssl, redirected_host.c_str());
+                    SSL_set_tlsext_host_name(ssl, redirected_host.c_str());
+                }
+            }
+        }
+        if (redirected) {
+            static constexpr unsigned char kHttp11Only[] = "\x08http/1.1";
+            std::vector<unsigned char> npln_wire;
+            const char* servername = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
+            if (servername != nullptr && IsNplnHost(servername)) {
+                npln_wire = BuildAlpnWire(requested_alpn_protos);
+            }
+            if (!npln_wire.empty()) {
+                LOG_INFO(Service_SSL, "[Nextendo] NPLN host '{}': honoring game-requested ALPN",
+                         servername);
+                SSL_set_alpn_protos(ssl, npln_wire.data(),
+                                    static_cast<unsigned int>(npln_wire.size()));
+            } else {
+                SSL_set_alpn_protos(ssl, kHttp11Only, sizeof(kHttp11Only) - 1);
+            }
+            skip_cert_verification = true;
+            SSL_set_verify(ssl, SSL_VERIFY_NONE, nullptr);
+        }
         SSL_set_verify_result(ssl, X509_V_OK);
         const int ret = SSL_do_handshake(ssl);
 

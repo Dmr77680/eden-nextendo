@@ -37,7 +37,8 @@ public:
     virtual ~SSLConnectionBackend() {}
     virtual void SetSocket(std::shared_ptr<Network::SocketBase> socket) = 0;
     virtual void SetVerifyOption(u32 option) = 0;
-    virtual Result DoHandshake() = 0;
+    // requested_alpn_protos: whatever the game asked for via SetNextAlpnProto.
+    virtual Result DoHandshake(std::span<const std::string> requested_alpn_protos = {}) = 0;
     virtual Result Read(size_t* out_size, std::span<u8> data) = 0;
     virtual Result Peek(size_t* out_size, std::span<u8> data) = 0;
     virtual Result Write(size_t* out_size, std::span<const u8> data) = 0;
