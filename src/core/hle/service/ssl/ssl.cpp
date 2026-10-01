@@ -149,6 +149,8 @@ public:
 
 private:
     Result DoHandshakeImpl() {
+        LOG_INFO(Service_SSL, "[Nextendo] DoHandshake called (did_handshake={}, socket={}, alpn_bytes={})",
+                 did_handshake, socket != nullptr, next_alpn_proto.size());
         ASSERT_OR_EXECUTE(!did_handshake && socket, { return ResultNoSocket; });
         // [Nextendo] Pass the ALPN protocols requested by the game (wire format: repeated
         // [1-byte length][name]) to the backend.
@@ -164,6 +166,8 @@ private:
         }
         Result res = backend->DoHandshake(requested_alpn_protos);
         did_handshake = res.IsSuccess();
+        LOG_INFO(Service_SSL, "[Nextendo] DoHandshake result: module={} description={}",
+                 static_cast<u32>(res.GetModule()), res.GetDescription());
         return res;
     }
 
@@ -239,6 +243,7 @@ private:
 
     Result SetIoMode(u32 input_mode) {
         auto mode = IoMode(input_mode);
+        LOG_INFO(Service_SSL, "[Nextendo] SetIoMode called, mode={}", input_mode);
         ASSERT(mode == IoMode::Blocking || mode == IoMode::NonBlocking);
         R_UNLESS(socket, ResultNoSocket);
         const bool non_block = mode == IoMode::NonBlocking;
@@ -389,6 +394,8 @@ private:
     }
 
     Result SetOption(OptionType option, s32 value) {
+        LOG_INFO(Service_SSL, "[Nextendo] SetOption called, option={}, value={}",
+                 static_cast<u32>(option), value);
         switch (option) {
         case OptionType::DoNotCloseSocket:
             do_not_close_socket = bool(value);
@@ -432,15 +439,14 @@ private:
     }
 
     Result SetNextAlpnProto(InBuffer<BufferAttr_HipcMapAlias> data) {
-        auto const to_write = u32((std::min)(next_alpn_proto.size(), data.size()));
-        next_alpn_proto.assign(data.begin(), data.begin() + to_write);
-        LOG_DEBUG(Service_SSL, "SetNextAlpnProto called, size={}", next_alpn_proto.size());
+        next_alpn_proto.assign(data.begin(), data.end());
+        LOG_INFO(Service_SSL, "SetNextAlpnProto called, size={}", next_alpn_proto.size());
         R_SUCCEED();
     }
 
     Result GetNextAlpnProto(OutBuffer<BufferAttr_HipcMapAlias> data, Out<u32> to_write) {
         *to_write = u32((std::min)(next_alpn_proto.size(), data.size()));
-        next_alpn_proto.assign(data.begin(), data.begin() + *to_write);
+        std::copy_n(next_alpn_proto.begin(), *to_write, data.begin());
         LOG_DEBUG(Service_SSL, "GetNextAlpnProto called, size={}", *to_write);
         R_SUCCEED();
     }
