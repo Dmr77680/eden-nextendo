@@ -16,6 +16,7 @@
 #include "core/hle/service/sockets/bsd.h"
 #include "core/hle/service/ssl/cert_store.h"
 #include "core/hle/service/ssl/ssl.h"
+#include "core/hle/service/ssl/nextendo_nat_rewrite.h"
 #include "core/hle/service/ssl/ssl_backend.h"
 #include "core/internal_network/network.h"
 #include "core/internal_network/sockets.h"
@@ -149,7 +150,19 @@ public:
 private:
     Result DoHandshakeImpl() {
         ASSERT_OR_EXECUTE(!did_handshake && socket, { return ResultNoSocket; });
-        Result res = backend->DoHandshake();
+        // [Nextendo] Pass the ALPN protocols requested by the game (wire format: repeated
+        // [1-byte length][name]) to the backend.
+        std::vector<std::string> requested_alpn_protos;
+        for (size_t pos = 0; pos < next_alpn_proto.size();) {
+            const size_t len = next_alpn_proto[pos++];
+            if (len == 0 || pos + len > next_alpn_proto.size()) {
+                break;
+            }
+            requested_alpn_protos.emplace_back(
+                reinterpret_cast<const char*>(next_alpn_proto.data() + pos), len);
+            pos += len;
+        }
+        Result res = backend->DoHandshake(requested_alpn_protos);
         did_handshake = res.IsSuccess();
         return res;
     }
@@ -304,8 +317,13 @@ private:
     Result Write(InBuffer<BufferAttr_HipcMapAlias> data, Out<u32> out_size) {
         R_UNLESS(did_handshake, ResultInternalError);
         size_t tmp{};
-        auto const res = backend->Write(&tmp, data);
-        *out_size = u32(tmp);
+        // [Nextendo] Rewrite the station address in outgoing payloads for the relay server.
+        std::vector<u8> rewritten;
+        const std::span<const u8> in_data = data;
+        const bool did_rewrite = TryFixupStationAddress(in_data, rewritten);
+        const std::span<const u8> send_data = did_rewrite ? std::span<const u8>(rewritten) : in_data;
+        auto const res = backend->Write(&tmp, send_data);
+        *out_size = (did_rewrite && res.IsSuccess()) ? u32(in_data.size()) : u32(tmp);
         return res;
     }
 
