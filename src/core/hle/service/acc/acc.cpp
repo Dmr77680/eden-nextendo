@@ -11,6 +11,20 @@
 #include "common/fs/file.h"
 #include "common/fs/path_util.h"
 #include "common/logging.h"
+#include <chrono>
+#include <cstdlib>
+#include <mutex>
+#include <span>
+#include <string_view>
+#include <vector>
+#include <openssl/bio.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <openssl/rand.h>
+#include "common/fs/fs.h"
+#include "common/hex_util.h"
+#include "common/nextendo_account.h"
+#include "core/file_sys/patch_manager.h"
 #include <ranges>
 #include "common/stb.h"
 #include "common/string_util.h"
@@ -30,6 +44,255 @@
 #include "core/loader/loader.h"
 
 namespace Service::Account {
+
+namespace {
+
+// The BAAS id_token read through LoadIdTokenCache. NEX parses it before logging in, so it must be
+// a real RS256 JWT. Key comes from NEXTENDO_BAAS_SIGNING_KEY or nextendo_baas.pem, else generated.
+constexpr const char* BaasIssuer = "https://e0d67c509fb203858ebcb2fe3f88c2aa.baas.nintendo.com";
+constexpr const char* BaasJku =
+    "https://e0d67c509fb203858ebcb2fe3f88c2aa.baas.nintendo.com/1.0.0/certificates";
+constexpr const char* BaasAudience = "ed9e2f05d286f7b8";
+constexpr const char* BaasKeyId = "nextendo-baas-key-1";
+
+std::string Base64UrlEncode(std::span<const u8> data) {
+    static constexpr std::string_view alphabet =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+    std::string out;
+    out.reserve((data.size() + 2) / 3 * 4);
+
+    for (std::size_t i = 0; i < data.size(); i += 3) {
+        const u32 remaining = static_cast<u32>(data.size() - i);
+        const u32 triple = (static_cast<u32>(data[i]) << 16) |
+                           (remaining > 1 ? static_cast<u32>(data[i + 1]) << 8 : 0) |
+                           (remaining > 2 ? static_cast<u32>(data[i + 2]) : 0);
+
+        out += alphabet[(triple >> 18) & 0x3F];
+        out += alphabet[(triple >> 12) & 0x3F];
+        if (remaining > 1) {
+            out += alphabet[(triple >> 6) & 0x3F];
+        }
+        if (remaining > 2) {
+            out += alphabet[triple & 0x3F];
+        }
+    }
+
+    return out;
+}
+
+std::string Base64UrlEncode(std::string_view text) {
+    return Base64UrlEncode(
+        std::span{reinterpret_cast<const u8*>(text.data()), text.size()});
+}
+
+std::string RandomHex(std::size_t bytes) {
+    std::vector<u8> buffer(bytes);
+    if (RAND_bytes(buffer.data(), static_cast<int>(buffer.size())) != 1) {
+        for (std::size_t i = 0; i < buffer.size(); ++i) {
+            buffer[i] = static_cast<u8>(std::rand());
+        }
+    }
+    return Common::HexToString(buffer, /*upper=*/false);
+}
+
+EVP_PKEY* GetBaasSigningKey() {
+    static EVP_PKEY* key = []() -> EVP_PKEY* {
+        std::string pem;
+
+        if (const char* env = std::getenv("NEXTENDO_BAAS_SIGNING_KEY"); env && *env) {
+            pem = env;
+        } else if (const auto file = Common::FS::ReadStringFromFile(
+                       std::filesystem::path{"nextendo_baas.pem"}, Common::FS::FileType::TextFile);
+                   !file.empty()) {
+            pem = file;
+        }
+
+        if (pem.find("BEGIN") != std::string::npos) {
+            BIO* bio = BIO_new_mem_buf(pem.data(), static_cast<int>(pem.size()));
+            if (bio) {
+                EVP_PKEY* loaded = PEM_read_bio_PrivateKey(bio, nullptr, nullptr, nullptr);
+                BIO_free(bio);
+                if (loaded) {
+                    LOG_INFO(Service_ACC, "[Nextendo] Using the supplied BAAS signing key");
+                    return loaded;
+                }
+                LOG_WARNING(Service_ACC,
+                            "[Nextendo] BAAS signing key could not be parsed; generating one");
+            }
+        }
+
+        // No key supplied: reuse a persisted auto-generated one so the identity (and its
+        // public JWK) stays stable across launches instead of a fresh key every process start.
+        const auto auto_key_path =
+            Common::FS::GetEdenPath(Common::FS::EdenPath::KeysDir) / "nextendo_baas_auto.pem";
+        if (const auto existing =
+                Common::FS::ReadStringFromFile(auto_key_path, Common::FS::FileType::TextFile);
+            existing.find("BEGIN") != std::string::npos) {
+            BIO* bio = BIO_new_mem_buf(existing.data(), static_cast<int>(existing.size()));
+            if (bio) {
+                EVP_PKEY* loaded = PEM_read_bio_PrivateKey(bio, nullptr, nullptr, nullptr);
+                BIO_free(bio);
+                if (loaded) {
+                    LOG_DEBUG(Service_ACC, "[Nextendo] Using the persisted auto-generated BAAS signing key");
+                    return loaded;
+                }
+            }
+        }
+
+        EVP_PKEY* generated = EVP_RSA_gen(2048);
+        if (!generated) {
+            LOG_ERROR(Service_ACC, "[Nextendo] Failed to generate a BAAS signing key");
+            return generated;
+        }
+
+        BIO* out_bio = BIO_new(BIO_s_mem());
+        if (out_bio && PEM_write_bio_PrivateKey(out_bio, generated, nullptr, nullptr, 0, nullptr,
+                                                nullptr)) {
+            char* data = nullptr;
+            const long len = BIO_get_mem_data(out_bio, &data);
+            if (len > 0 && data) {
+                const auto written = Common::FS::WriteStringToFile(
+                    auto_key_path, Common::FS::FileType::TextFile,
+                    std::string_view{data, static_cast<size_t>(len)});
+                if (written > 0) {
+                    LOG_DEBUG(Service_ACC,
+                             "[Nextendo] Generated and persisted a new BAAS signing key at {}",
+                             auto_key_path.string());
+                }
+            }
+        }
+        if (out_bio) {
+            BIO_free(out_bio);
+        }
+        return generated;
+    }();
+
+    return key;
+}
+
+std::string SignRs256(std::string_view signing_input) {
+    EVP_PKEY* key = GetBaasSigningKey();
+    if (!key) {
+        return {};
+    }
+
+    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+    if (!ctx) {
+        return {};
+    }
+
+    std::string signature;
+    std::size_t length = 0;
+
+    if (EVP_DigestSignInit(ctx, nullptr, EVP_sha256(), nullptr, key) == 1 &&
+        EVP_DigestSign(ctx, nullptr, &length,
+                       reinterpret_cast<const u8*>(signing_input.data()),
+                       signing_input.size()) == 1) {
+        std::vector<u8> raw(length);
+        if (EVP_DigestSign(ctx, raw.data(), &length,
+                           reinterpret_cast<const u8*>(signing_input.data()),
+                           signing_input.size()) == 1) {
+            raw.resize(length);
+            signature = Base64UrlEncode(raw);
+        }
+    }
+
+    if (signature.empty()) {
+        LOG_ERROR(Service_ACC, "[Nextendo] Failed to sign the BAAS id_token");
+    }
+
+    EVP_MD_CTX_free(ctx);
+    return signature;
+}
+
+std::string GetInstalledTitleVersion(Core::System& system) {
+    const u64 program_id = system.GetApplicationProcessProgramID();
+    if (program_id == 0) {
+        return {};
+    }
+    const FileSys::PatchManager pm{program_id, system.GetFileSystemController(),
+                                   system.GetContentProvider()};
+    const auto metadata = pm.GetControlMetadata();
+    return metadata.first != nullptr ? metadata.first->GetVersionString() : std::string{};
+}
+
+std::string BuildIdToken(const std::string& installed_version) {
+    const auto now = std::chrono::duration_cast<std::chrono::seconds>(
+                         std::chrono::system_clock::now().time_since_epoch())
+                         .count();
+
+    const std::string header =
+        fmt::format(R"({{"alg":"RS256","kid":"{}","typ":"id_token","jku":"{}"}})", BaasKeyId,
+                    BaasJku);
+
+    // [Nextendo] Ride the signed nx2 token in the "nnex" claim so the auth server can
+    // cryptographically bind this NEX login to the account (anti-impersonation).
+    std::string nnex_claim;
+    if (Common::NextendoAccount::IsLinked()) {
+        const std::string tok = Common::NextendoAccount::GetToken();
+        if (!tok.empty()) {
+            nnex_claim = fmt::format(R"("nnex":"{}",)", tok);
+        }
+    }
+
+    // [Nextendo] The console's own nnAccount module expects a "nintendo" claim dictionary
+    // with device metadata (dt, pc, di, sn, ist) -- without it, nnAccount's local schema
+    // check rejects an otherwise well-formed, correctly-signed token even though the server
+    // side has nothing to complain about. Matches Ryujinx-Nextendo's own fix for the exact
+    // same shape of failure (their commit message: "the console receives HTTP 200 but
+    // rejects the body because the JWT schema doesn't match what nnAccount expects").
+    // Reuses the same device id for both the top-level "di" and the nested one, matching
+    // Ryujinx-Nextendo's own token (a single deviceId feeding both places).
+    const std::string device_id = RandomHex(0x10);
+    const std::string nintendo_claim = fmt::format(
+        R"("nintendo":{{"dt":"NX Prod 1","pc":"HAC","di":"{}","sn":"XAW10000000000","ist":false}},)",
+        device_id);
+
+    std::string tv_claim;
+    if (!installed_version.empty()) {
+        tv_claim = fmt::format(R"("tv":"{}",)", installed_version);
+    }
+
+    const std::string payload = fmt::format(
+        R"({{"sub":"{}","aud":"{}","iss":"{}","typ":"id_token","iat":{},"exp":{},"jku":"{}",)"
+        R"("jti":"{}","di":"{}","sn":"XAW10000000000","bs:did":"{}",{}{}{}"hm":true}})",
+        RandomHex(0x10), BaasAudience, BaasIssuer, now, now + 3 * 60 * 60, BaasJku,
+        Common::UUID::MakeRandom().FormattedString(), device_id, RandomHex(0x10),
+        nintendo_claim, nnex_claim, tv_claim);
+
+    const std::string signing_input =
+        Base64UrlEncode(header) + "." + Base64UrlEncode(payload);
+
+    return signing_input + "." + SignRs256(signing_input);
+}
+
+std::vector<u8> GetIdTokenBytes(Core::System& system) {
+    static std::mutex mutex;
+    static std::vector<u8> cached;
+    static std::chrono::steady_clock::time_point expiry{};
+    static u64 cached_generation = 0;
+    static std::string cached_version;
+
+    std::lock_guard lock{mutex};
+
+    const u64 generation = Common::NextendoAccount::GetGeneration();
+    const std::string installed_version = GetInstalledTitleVersion(system);
+    const auto now = std::chrono::steady_clock::now();
+    if (cached.empty() || now >= expiry || generation != cached_generation ||
+        installed_version != cached_version) {
+        const std::string token = BuildIdToken(installed_version);
+        cached.assign(token.begin(), token.end());
+        expiry = now + std::chrono::hours{2};
+        cached_generation = generation;
+        cached_version = installed_version;
+        LOG_INFO(Service_ACC, "[Nextendo] Issued a signed BAAS id_token ({} bytes)", cached.size());
+    }
+
+    return cached;
+}
+
+} // Anonymous namespace
 
 // Thumbnails are hard coded to be at least this size
 constexpr std::size_t THUMBNAIL_SIZE = 0x24000;
@@ -661,11 +924,15 @@ public:
     ~EnsureTokenIdCacheAsyncInterface() = default;
 
     void LoadIdTokenCache(HLERequestContext& ctx) {
-        LOG_WARNING(Service_ACC, "(STUBBED) called");
+        const std::vector<u8> token_bytes = GetIdTokenBytes(system);
+        LOG_INFO(Service_ACC, "[Nextendo] Providing BAAS ID token in async interface ({} bytes)",
+                 token_bytes.size());
+
+        ctx.WriteBuffer(token_bytes);
 
         IPC::ResponseBuilder rb{ctx, 3};
         rb.Push(ResultSuccess);
-        rb.Push(0);
+        rb.Push<u32>(static_cast<u32>(token_bytes.size()));
     }
 
 protected:
