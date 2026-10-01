@@ -973,6 +973,17 @@ public:
     }
 
 private:
+    // [Nextendo] The id the game presents to the online service is the linked account's
+    // Network ID (never logged); without a linked account keep the stock behavior.
+    u64 GetEffectiveAccountId() const {
+        if (Common::NextendoAccount::IsLinked()) {
+            if (const u64 pid = Common::NextendoAccount::GetPid(); pid != 0) {
+                return pid;
+            }
+        }
+        return profile_manager->GetLastOpenedUser().Hash();
+    }
+
     void CheckAvailability(HLERequestContext& ctx) {
         LOG_DEBUG(Service_ACC, "(STUBBED) called");
         IPC::ResponseBuilder rb{ctx, 2};
@@ -980,11 +991,12 @@ private:
     }
 
     void GetAccountId(HLERequestContext& ctx) {
-        LOG_DEBUG(Service_ACC, "called");
+        LOG_INFO(Service_ACC, "[Nextendo] GetAccountId called (linked={})",
+                 Common::NextendoAccount::IsLinked());
 
         IPC::ResponseBuilder rb{ctx, 4};
         rb.Push(ResultSuccess);
-        rb.PushRaw<u64>(profile_manager->GetLastOpenedUser().Hash());
+        rb.PushRaw<u64>(GetEffectiveAccountId());
     }
 
     void EnsureIdTokenCacheAsync(HLERequestContext& ctx) {
@@ -1014,9 +1026,11 @@ private:
     }
 
     void GetNintendoAccountUserResourceCacheForApplication(HLERequestContext& ctx) {
-        LOG_WARNING(Service_ACC, "(STUBBED) called");
+        LOG_INFO(Service_ACC, "[Nextendo] GetNintendoAccountUserResourceCacheForApplication called");
 
+        const u64 account_id = GetEffectiveAccountId();
         std::vector<u8> nas_user_base_for_application(0x68);
+        std::memcpy(nas_user_base_for_application.data(), &account_id, sizeof(account_id));
         ctx.WriteBuffer(nas_user_base_for_application);
 
         if (ctx.CanWriteBuffer(1)) {
@@ -1026,7 +1040,7 @@ private:
 
         IPC::ResponseBuilder rb{ctx, 4};
         rb.Push(ResultSuccess);
-        rb.PushRaw<u64>(profile_manager->GetLastOpenedUser().Hash());
+        rb.PushRaw<u64>(account_id);
     }
 
     void StoreOpenContext(HLERequestContext& ctx) {
