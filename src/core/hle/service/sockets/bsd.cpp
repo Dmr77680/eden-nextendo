@@ -5,6 +5,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <array>
+#include <atomic>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -673,8 +674,11 @@ Errno BSD_USA::BindImpl(s32 fd, std::span<const u8> addr) {
     }
 
     auto addr_in = GetValue<SockAddrIn>(addr);
+    const auto host_bind = Translate(addr_in);
+    LOG_INFO(Service, "[Nextendo][UDP] Bind fd={} to {}:{}", fd,
+             Network::IPv4AddressToString(host_bind.ip), host_bind.portno);
 
-    return Translate(file_descriptors[fd]->socket->Bind(Translate(addr_in)));
+    return Translate(file_descriptors[fd]->socket->Bind(host_bind));
 }
 
 Errno BSD_USA::ConnectImpl(s32 fd, std::span<const u8> addr) {
@@ -980,6 +984,16 @@ std::pair<s32, Errno> BSD_USA::RecvFromImpl(s32 fd, u32 flags, std::vector<u8>& 
                 LOG_INFO(Service, "[Nextendo] NAT check reply from port {} recorded",
                          addr_in.portno);
             }
+
+            // [Nextendo][UDP] Diagnostic : d'ou viennent les datagrammes recus ?
+            if (ret > 0) {
+                static std::atomic<u32> rx_count{0};
+                const u32 n = ++rx_count;
+                if (n <= 60 || n % 500 == 0) {
+                    LOG_INFO(Service, "[Nextendo][UDP] RecvFrom #{} fd={} len={} from {}:{}", n, fd,
+                             ret, Network::IPv4AddressToString(addr_in.ip), addr_in.portno);
+                }
+            }
         }
     }
 
@@ -1016,7 +1030,22 @@ std::pair<s32, Errno> BSD_USA::SendToImpl(s32 fd, u32 flags, std::span<const u8>
         p_addr_in = &addr_in;
     }
 
-    return Translate(file_descriptors[fd]->socket->SendTo(flags, message, p_addr_in));
+    const auto send_result = Translate(file_descriptors[fd]->socket->SendTo(flags, message, p_addr_in));
+
+    // [Nextendo][UDP] Diagnostic : vers qui part-on, et avec quel resultat ?
+    if (p_addr_in) {
+        static std::atomic<u32> tx_count{0};
+        const u32 n = ++tx_count;
+        if (n <= 60 || n % 500 == 0 || send_result.first < 0) {
+            static std::atomic<u32> err_count{0};
+            if (send_result.first >= 0 || ++err_count <= 30) {
+                LOG_INFO(Service, "[Nextendo][UDP] SendTo #{} fd={} len={} to {}:{} -> ret={} errno={}",
+                         n, fd, message.size(), Network::IPv4AddressToString(p_addr_in->ip),
+                         p_addr_in->portno, send_result.first, static_cast<s32>(send_result.second));
+            }
+        }
+    }
+    return send_result;
 }
 
 Errno BSD_USA::CloseImpl(s32 fd) {
