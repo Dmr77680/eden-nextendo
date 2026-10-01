@@ -492,6 +492,8 @@ private:
         LOG_DEBUG(Service_NIFM, "(STUBBED) called");
         state = new_state;
         event1->Signal(system.Kernel());
+        // [Nextendo] event2 n'etait jamais signale : un jeu qui l'attend resterait bloque.
+        event2->Signal(system.Kernel());
     }
 
     KernelHelpers::ServiceContext service_context;
