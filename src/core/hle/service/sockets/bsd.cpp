@@ -12,6 +12,7 @@
 #include <fmt/ranges.h>
 
 #include "common/logging.h"
+#include "common/nextendo_nat.h"
 #include "common/socket_types.h"
 #include "core/core.h"
 #include "core/hle/kernel/k_thread.h"
@@ -970,6 +971,15 @@ std::pair<s32, Errno> BSD_USA::RecvFromImpl(s32 fd, u32 flags, std::vector<u8>& 
             ASSERT(addr.size() >= 16);
             const SockAddrIn result = Translate(addr_in);
             PutValue(addr, result);
+
+            // [Nextendo] Reponse NAT check nncs : 4 x u32 BE [type][port ext][ip ext][ip serveur].
+            // On memorise l'IP externe pour nextendo_nat_rewrite.cpp (station URL).
+            if (ret == 16 && (addr_in.portno == 10025 || addr_in.portno == 10125)) {
+                Common::NextendoNat::SetObservedExternalIp(
+                    {message[8], message[9], message[10], message[11]});
+                LOG_INFO(Service, "[Nextendo] NAT check reply from port {} recorded",
+                         addr_in.portno);
+            }
         }
     }
 
