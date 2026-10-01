@@ -316,6 +316,8 @@ private:
         size_t tmp{};
         auto const res = backend->Read(&tmp, data);
         *out_size = u32(tmp);
+        LOG_INFO(Service_SSL, "[Nextendo] Read: buffer={} got={} result={}:{}", data.size(), tmp,
+                 static_cast<u32>(res.GetModule()), res.GetDescription());
         return res;
     }
 
@@ -328,6 +330,9 @@ private:
         const bool did_rewrite = TryFixupStationAddress(in_data, rewritten);
         const std::span<const u8> send_data = did_rewrite ? std::span<const u8>(rewritten) : in_data;
         auto const res = backend->Write(&tmp, send_data);
+        LOG_INFO(Service_SSL, "[Nextendo] Write: size={} wrote={} rewrite={} result={}:{}",
+                 in_data.size(), tmp, did_rewrite, static_cast<u32>(res.GetModule()),
+                 res.GetDescription());
         *out_size = (did_rewrite && res.IsSuccess()) ? u32(in_data.size()) : u32(tmp);
         return res;
     }
@@ -393,7 +398,7 @@ private:
         return res;
     }
 
-    Result SetOption(OptionType option, s32 value) {
+    Result SetOption(s32 value, OptionType option) {
         LOG_INFO(Service_SSL, "[Nextendo] SetOption called, option={}, value={}",
                  static_cast<u32>(option), value);
         switch (option) {
