@@ -571,7 +571,9 @@ static std::pair<u32, GetAddrInfoError> GetAddrInfoRequestImpl(HLERequestContext
         }
     }
 
-    const std::vector<u8> data = SerializeAddrInfoAsHostEnt(*res, host);
+    // [Nextendo] GetAddrInfo doit renvoyer le format addrinfo (SerializeAddrInfo), pas hostent :
+    // le format hostent est reserve a GetHostByName. Sinon le jeu ne parse pas la reponse.
+    const std::vector<u8> data = SerializeAddrInfo(*res, host);
     const u32 data_size = static_cast<u32>(data.size());
     ctx.WriteBuffer(data, 0);
 
