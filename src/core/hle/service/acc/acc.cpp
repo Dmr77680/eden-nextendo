@@ -1002,16 +1002,15 @@ private:
     }
 
     void LoadIdTokenCache(HLERequestContext& ctx) {
-        LOG_WARNING(Service_ACC, "(STUBBED) called");
+        const std::vector<u8> token_bytes = GetIdTokenBytes(system);
+        LOG_INFO(Service_ACC, "[Nextendo] Providing BAAS ID token ({} bytes)", token_bytes.size());
 
-        std::vector<u8> token_data(0x100);
-        std::fill(token_data.begin(), token_data.end(), u8(0));
+        ctx.WriteBuffer(token_bytes);
 
-        ctx.WriteBuffer(token_data);
-
-        IPC::ResponseBuilder rb{ctx, 3};
+        IPC::ResponseBuilder rb{ctx, 4};
         rb.Push(ResultSuccess);
-        rb.Push(static_cast<u32>(token_data.size()));
+        rb.Push<u32>(static_cast<u32>(token_bytes.size()));
+        rb.Push(0);
     }
 
     void GetNintendoAccountUserResourceCacheForApplication(HLERequestContext& ctx) {
