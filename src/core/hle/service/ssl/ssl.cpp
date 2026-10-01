@@ -29,6 +29,20 @@ enum class CertificateFormat : u32 {
     Der = 2,
 };
 
+// [Nextendo] Debug helper: hex + printable-ASCII dump of the first max_bytes bytes.
+static std::string NextendoDump(std::span<const u8> data, size_t max_bytes) {
+    static constexpr char kHex[] = "0123456789abcdef";
+    const size_t n = (std::min)(data.size(), max_bytes);
+    std::string hex;
+    std::string txt;
+    for (size_t i = 0; i < n; ++i) {
+        hex += kHex[data[i] >> 4];
+        hex += kHex[data[i] & 0xF];
+        txt += (data[i] >= 0x20 && data[i] < 0x7F) ? static_cast<char>(data[i]) : '.';
+    }
+    return hex + " | " + txt;
+}
+
 // This is nn::ssl::sf::ContextOption
 enum class ContextOption : u32 {
     None = 0,
@@ -318,6 +332,10 @@ private:
         *out_size = u32(tmp);
         LOG_INFO(Service_SSL, "[Nextendo] Read: buffer={} got={} result={}:{}", data.size(), tmp,
                  static_cast<u32>(res.GetModule()), res.GetDescription());
+        if (tmp > 0) {
+            LOG_INFO(Service_SSL, "[Nextendo] Read data: {}",
+                     NextendoDump(std::span<const u8>(data.data(), tmp), 160));
+        }
         return res;
     }
 
@@ -330,6 +348,7 @@ private:
         const bool did_rewrite = TryFixupStationAddress(in_data, rewritten);
         const std::span<const u8> send_data = did_rewrite ? std::span<const u8>(rewritten) : in_data;
         auto const res = backend->Write(&tmp, send_data);
+        LOG_INFO(Service_SSL, "[Nextendo] Write head: {}", NextendoDump(in_data, 12));
         LOG_INFO(Service_SSL, "[Nextendo] Write: size={} wrote={} rewrite={} result={}:{}",
                  in_data.size(), tmp, did_rewrite, static_cast<u32>(res.GetModule()),
                  res.GetDescription());
