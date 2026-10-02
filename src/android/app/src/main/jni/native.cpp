@@ -1497,6 +1497,13 @@ jstring Java_org_yuzu_yuzu_1emu_NativeLibrary_firmwareVersion(JNIEnv* env, jclas
     return Common::Android::ToJString(env, display_version);
 }
 
+void Java_org_yuzu_yuzu_1emu_NativeLibrary_setNextendoCaCertPath(JNIEnv* env, jclass clazz,
+                                                                 jstring jpath) {
+#ifdef ENABLE_WEB_SERVICE
+    WebService::NextendoApi::SetCaCertPathOverride(Common::Android::GetJString(env, jpath));
+#endif
+}
+
 jstring Java_org_yuzu_yuzu_1emu_NativeLibrary_nextendoOnlineCountsJson(JNIEnv* env, jclass clazz) {
     std::string json = "{";
 #ifdef ENABLE_WEB_SERVICE

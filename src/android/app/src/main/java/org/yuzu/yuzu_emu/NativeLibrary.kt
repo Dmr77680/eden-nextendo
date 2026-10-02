@@ -706,4 +706,36 @@ object NativeLibrary {
     external fun getDefaultAccountBackupJpeg(): ByteArray
 
     external fun nextendoOnlineCountsJson(): String
+
+    // Android has no system CA file OpenSSL can read; the CA store is exported to a PEM.
+    external fun setNextendoCaCertPath(path: String)
+
+    @JvmStatic
+    fun exportNextendoCaCerts(): String {
+        return try {
+            val keystore = java.security.KeyStore.getInstance("AndroidCAStore").apply {
+                load(null)
+            }
+            val pem = StringBuilder()
+            val aliases = keystore.aliases()
+            while (aliases.hasMoreElements()) {
+                val alias = aliases.nextElement()
+                val cert = keystore.getCertificate(alias) ?: continue
+                val encoded = android.util.Base64.encodeToString(
+                    cert.encoded,
+                    android.util.Base64.NO_WRAP
+                )
+                pem.append("-----BEGIN CERTIFICATE-----\n")
+                pem.append(encoded.chunked(64).joinToString("\n"))
+                pem.append("\n-----END CERTIFICATE-----\n")
+            }
+            val file = java.io.File(YuzuApplication.appContext.filesDir, "nextendo_cacert.pem")
+            file.writeText(pem.toString())
+            setNextendoCaCertPath(file.absolutePath)
+            file.absolutePath
+        } catch (e: Exception) {
+            Log.error("[NativeLibrary] Nextendo CA export failed: ${e.message}")
+            ""
+        }
+    }
 }

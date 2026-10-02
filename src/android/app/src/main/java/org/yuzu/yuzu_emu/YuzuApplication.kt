@@ -76,6 +76,9 @@ class YuzuApplication : Application() {
         ControllerNavigationGlobalHook.install(this)
 
         createNotificationChannels()
+
+        // [Nextendo] CA bundle for the account/friends HTTPS API
+        Thread { NativeLibrary.exportNextendoCaCerts() }.start()
     }
 
     companion object {
