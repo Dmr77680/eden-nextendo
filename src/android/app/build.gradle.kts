@@ -190,8 +190,8 @@ android {
             isDefault = true
             minSdk = 33
 
-            manifestPlaceholders += mapOf("appNameBase" to "Eden")
-            resValue("string", "app_name_suffixed", "Eden")
+            manifestPlaceholders += mapOf("appNameBase" to "DEN")
+            resValue("string", "app_name_suffixed", "DEN")
 
             ndk {
                 abiFilters += listOf("arm64-v8a")
@@ -265,12 +265,12 @@ android {
     }
 
     productFlavors.all {
-        val currentName = manifestPlaceholders["appNameBase"] as? String ?: "Eden"
+        val currentName = manifestPlaceholders["appNameBase"] as? String ?: "DEN"
         val suffix = if (isNightly) " Nightly" else ""
 
         // apply nightly suffix I/A
         resValue("string", "app_name_suffixed", "$currentName$suffix")
-        resValue("string", "app_name", "Eden$suffix")
+        resValue("string", "app_name", "DEN$suffix")
     }
 
     sourceSets {
