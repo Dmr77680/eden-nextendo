@@ -166,11 +166,23 @@ class GameAdapter(private val activity: AppCompatActivity) :
             }
         }
 
-        private fun displayTitle(model: Game): String {
+        private fun displayTitle(model: Game): CharSequence {
             val base = model.title.replace("[\\t\\n\\r]+".toRegex(), " ")
             val id = (model.programId.toLongOrNull() ?: 0L).toString(16).padStart(16, '0')
             val count = onlineCounts[id] ?: return base
-            return if (count > 0) "$base  • $count en ligne" else base
+            if (count <= 0) {
+                return base
+            }
+            val badge = "• $count en ligne"
+            val text = android.text.SpannableString("$base  $badge")
+            val start = base.length + 2
+            text.setSpan(
+                android.text.style.ForegroundColorSpan(0xFF4CAF50.toInt()),
+                start,
+                start + badge.length,
+                android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            return text
         }
 
         private fun bindListView(model: Game) {
