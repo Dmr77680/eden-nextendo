@@ -414,6 +414,13 @@ afterEvaluate {
             from(apkFile)
             from(aabFile)
             into(artifactsDir)
+            rename {
+                when {
+                    it.endsWith(".apk") -> "DEN.apk"
+                    it.endsWith(".aab") -> "DEN.aab"
+                    else -> it
+                }
+            }
 
             dependsOn("assemble${variantTask}")
             dependsOn("bundle${variantTask}")
