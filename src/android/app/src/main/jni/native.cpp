@@ -79,6 +79,7 @@ extern "C" {
 #include "core/file_sys/common_funcs.h"
 #include "core/hle/service/am/applet_manager.h"
 #include "core/hle/service/am/frontend/applets.h"
+#include "common/nextendo_account.h"
 #include "core/hle/service/filesystem/filesystem.h"
 #include "core/hle/service/mii/mii_database.h"
 #include "core/hle/service/mii/mii_manager.h"
@@ -1618,6 +1619,44 @@ jint Java_org_yuzu_yuzu_1emu_NativeLibrary_importMiiFile(JNIEnv* env, jclass cla
     }
     const auto result = manager.Append(metadata, char_info);
     return result.IsError() ? 3 : 0;
+}
+
+jstring Java_org_yuzu_yuzu_1emu_NativeLibrary_nextendoAccountName(JNIEnv* env, jclass clazz) {
+    const std::string name =
+        Common::NextendoAccount::IsLinked() ? Common::NextendoAccount::GetUsername() : "";
+    return Common::Android::ToJString(env, name);
+}
+
+void Java_org_yuzu_yuzu_1emu_NativeLibrary_nextendoSignOut(JNIEnv* env, jclass clazz) {
+    Common::NextendoAccount::Clear();
+}
+
+void Java_org_yuzu_yuzu_1emu_NativeLibrary_nextendoSignIn(JNIEnv* env, jclass clazz) {
+#ifdef ENABLE_WEB_SERVICE
+    std::thread([] {
+        JNIEnv* thread_env = Common::Android::GetEnvForThread();
+        const jclass cls = Common::Android::GetNativeLibraryClass();
+        const jmethodID url_method =
+            thread_env->GetStaticMethodID(cls, "onNextendoOAuthUrl", "(Ljava/lang/String;)V");
+        const jmethodID result_method = thread_env->GetStaticMethodID(
+            cls, "onNextendoSignInResult", "(ZLjava/lang/String;)V");
+        const auto open_url = [&](const std::string& url) {
+            const jstring jurl = Common::Android::ToJString(thread_env, url);
+            thread_env->CallStaticVoidMethod(cls, url_method, jurl);
+            thread_env->DeleteLocalRef(jurl);
+        };
+        const auto result = WebService::NextendoApi::SignInWithBrowser(open_url);
+        if (result.ok) {
+            Common::NextendoAccount::Save(result.pid, result.username, result.friend_code,
+                                          result.token);
+        }
+        const std::string message = result.ok ? result.username : result.error;
+        const jstring jmsg = Common::Android::ToJString(thread_env, message);
+        thread_env->CallStaticVoidMethod(cls, result_method, static_cast<jboolean>(result.ok),
+                                         jmsg);
+        thread_env->DeleteLocalRef(jmsg);
+    }).detach();
+#endif
 }
 
 jstring Java_org_yuzu_yuzu_1emu_NativeLibrary_nextendoOnlineCountsJson(JNIEnv* env, jclass clazz) {

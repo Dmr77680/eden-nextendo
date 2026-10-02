@@ -394,11 +394,24 @@ class GamesFragment : Fragment() {
         binding.friendsButton.setOnClickListener {
             com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Nextendo")
-                .setItems(arrayOf("Amis Nextendo", "Importer un Mii")) { _, which ->
+                .setItems(
+                    arrayOf(
+                        "Amis Nextendo",
+                        "Importer un Mii",
+                        org.yuzu.yuzu_emu.NativeLibrary.nextendoAccountName().let {
+                            if (it.isEmpty()) "Se connecter à Nextendo" else "Se déconnecter ($it)"
+                        }
+                    )
+                ) { _, which ->
                     if (which == 0) {
                         NextendoFriendsDialog.show(requireActivity())
-                    } else {
+                    } else if (which == 1) {
                         miiPicker.launch(arrayOf("*/*"))
+                    } else if (org.yuzu.yuzu_emu.NativeLibrary.nextendoAccountName().isEmpty()) {
+                        org.yuzu.yuzu_emu.utils.NextendoSignInService.start(requireContext())
+                    } else {
+                        org.yuzu.yuzu_emu.NativeLibrary.nextendoSignOut()
+                        Toast.makeText(requireContext(), "Déconnecté de Nextendo", Toast.LENGTH_SHORT).show()
                     }
                 }
                 .show()

@@ -709,6 +709,38 @@ object NativeLibrary {
 
     external fun nextendoFriendsListJson(): String
 
+    external fun nextendoSignIn()
+
+    external fun nextendoSignOut()
+
+    // "" when no Nextendo account is linked
+    external fun nextendoAccountName(): String
+
+    @Keep
+    @JvmStatic
+    fun onNextendoOAuthUrl(url: String) {
+        try {
+            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, url.toUri())
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            YuzuApplication.appContext.startActivity(intent)
+        } catch (_: Exception) {
+        }
+    }
+
+    @Keep
+    @JvmStatic
+    fun onNextendoSignInResult(success: Boolean, message: String) {
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            val ctx = YuzuApplication.appContext
+            val text = if (success) "Connecté à Nextendo : $message" else "Connexion échouée : $message"
+            android.widget.Toast.makeText(ctx, text, android.widget.Toast.LENGTH_LONG).show()
+            try {
+                org.yuzu.yuzu_emu.utils.NextendoSignInService.stop(ctx)
+            } catch (_: Exception) {
+            }
+        }
+    }
+
     external fun importMiiFile(data: ByteArray): Int
 
     // Android has no system CA file OpenSSL can read; the CA store is exported to a PEM.

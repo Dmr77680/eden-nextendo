@@ -44,7 +44,7 @@ std::string GetCaCertPathOverride() {
 namespace {
 
 constexpr const char* CanonicalUrl = "https://nextendo.network";
-constexpr const char* ClientId = "nextendo-citron";
+constexpr const char* ClientId = "nxc_dS2ke6Lv4wHi";
 constexpr int TimeoutSeconds = 15;
 
 struct Callback {
@@ -376,7 +376,9 @@ LoginResult SignInWithBrowser(const std::function<void(const std::string&)>& ope
         callback.cv.notify_all();
     });
 
-    const int port = server.bind_to_any_port("127.0.0.1");
+    const int port = server.bind_to_port("127.0.0.1", 47823)
+                         ? 47823
+                         : server.bind_to_any_port("127.0.0.1");
     if (port < 0) {
         out.error = "Could not open a local port for the sign-in callback.";
         LOG_ERROR(WebService, "SignInWithBrowser: bind_to_any_port failed");
@@ -387,9 +389,9 @@ LoginResult SignInWithBrowser(const std::function<void(const std::string&)>& ope
     const std::string redirect_uri = fmt::format("http://127.0.0.1:{}/callback", port);
 
     const std::string auth_url =
-        fmt::format("{}/api/oauth/authorize?response_type=code&client_id={}"
-                    "&redirect_uri={}&scope=identity+friends+sauvegardes+history+presence"
-                    "&app=citron&state={}"
+        fmt::format("{}/oauth/authorize?response_type=code&client_id={}"
+                    "&redirect_uri={}&scope=identity+friends+presence+profil+game.matchmaking"
+                    "&state={}"
                     "&code_challenge={}&code_challenge_method=S256",
                     BaseUrl(), ClientId, PercentEncode(redirect_uri), state, challenge);
     LOG_INFO(WebService, "SignInWithBrowser: opening {}", auth_url);
@@ -439,7 +441,7 @@ LoginResult SignInWithBrowser(const std::function<void(const std::string&)>& ope
     client.set_follow_location(true);
     ApplyCaCertPath(client);
 
-    const auto result = client.Post("/api/oauth/token", form);
+    const auto result = client.Post("/oauth/token", form);
     if (!result) {
         out.error = "Could not reach the Nextendo account server.";
         const long verify_result = 0; // [Eden] httplib no longer has get_openssl_verify_result
@@ -459,15 +461,74 @@ LoginResult SignInWithBrowser(const std::function<void(const std::string&)>& ope
 
     try {
         const auto json = nlohmann::json::parse(result->body);
-        const auto& account = json.at("account");
+        std::string keys;
+        for (const auto& item : json.items()) {
+            keys += item.key() + " ";
+        }
+        LOG_INFO(WebService, "SignInWithBrowser: token response fields: {}", keys);
 
-        out.pid = account.at("pid").get<u64>();
-        out.username = account.value("username", std::string{});
-        out.friend_code = account.value("friend_code", std::string{});
-        out.token = json.value("nex_token", std::string{});
+        const auto read_u64 = [](const nlohmann::json& j, const char* key) -> u64 {
+            const auto it = j.find(key);
+            if (it == j.end()) {
+                return 0;
+            }
+            if (it->is_number_integer()) {
+                return it->get<u64>();
+            }
+            if (it->is_string()) {
+                try {
+                    return std::stoull(it->get<std::string>());
+                } catch (...) {
+                }
+            }
+            return 0;
+        };
+        const auto read_str = [](const nlohmann::json& j, const char* key) -> std::string {
+            const auto it = j.find(key);
+            return it != j.end() && it->is_string() ? it->get<std::string>() : std::string{};
+        };
+
+        // The response may carry the account fields at the top level or in a sub-object.
+        const nlohmann::json* account = &json;
+        for (const char* key : {"account", "user", "profile"}) {
+            const auto it = json.find(key);
+            if (it != json.end() && it->is_object()) {
+                account = &*it;
+                break;
+            }
+        }
+        out.pid = read_u64(*account, "pid");
+        if (out.pid == 0) {
+            out.pid = read_u64(*account, "id");
+        }
+        out.username = read_str(*account, "username");
+        out.friend_code = read_str(*account, "friend_code");
+        out.token = read_str(json, "nex_token");
+        if (out.token.empty()) {
+            out.token = read_str(json, "access_token");
+        }
+
+        if ((out.pid == 0 || out.username.empty()) && !out.token.empty()) {
+            // Ask the profile endpoint for what the token response did not include.
+            const auto profile = Send("GET", "/api/profile", {}, out.token);
+            if (profile && profile->status == 200) {
+                const auto pj = nlohmann::json::parse(profile->body, nullptr, false);
+                if (pj.is_object()) {
+                    if (out.pid == 0) {
+                        out.pid = read_u64(pj, "pid");
+                    }
+                    if (out.username.empty()) {
+                        out.username = read_str(pj, "username");
+                    }
+                    if (out.friend_code.empty()) {
+                        out.friend_code = read_str(pj, "friend_code");
+                    }
+                }
+            }
+        }
 
         if (out.pid == 0 || out.token.empty()) {
-            out.error = "The account server returned an incomplete sign-in.";
+            out.error = fmt::format("Incomplete sign-in (fields: {}pid={})", keys, out.pid);
             LOG_ERROR(WebService, "SignInWithBrowser: incomplete sign-in, pid={} token_empty={}",
                       out.pid, out.token.empty());
             return out;
