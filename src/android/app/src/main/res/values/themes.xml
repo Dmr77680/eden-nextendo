@@ -2,7 +2,7 @@
 <resources>
 
     <style name="Theme.Yuzu.Splash.Main" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/eden_background</item>
+        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_yuzu_splash</item>
         <item name="postSplashScreenTheme">@style/Theme.Yuzu.Main</item>
     </style>
