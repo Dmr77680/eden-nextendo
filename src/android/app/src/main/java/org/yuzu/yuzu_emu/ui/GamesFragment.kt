@@ -8,6 +8,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import org.json.JSONObject
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -66,6 +69,39 @@ class GamesFragment : Fragment() {
     companion object {
         private const val SEARCH_TEXT = "SearchText"
         private const val PREF_SORT_TYPE = "GamesSortType"
+    }
+
+    // [Nextendo] players online per title, refreshed while the games list is visible
+    private val onlineCountsHandler = Handler(Looper.getMainLooper())
+    @Volatile private var onlineCountsPolling = false
+    private val onlineCountsPoll = object : Runnable {
+        override fun run() {
+            Thread {
+                try {
+                    val json = NativeLibrary.nextendoOnlineCountsJson()
+                    val obj = JSONObject(json)
+                    val counts = HashMap<String, Int>()
+                    val keys = obj.keys()
+                    while (keys.hasNext()) {
+                        val key = keys.next()
+                        counts[key.lowercase()] = obj.getInt(key)
+                    }
+                    // An empty answer means the fetch failed; keep the last known counts.
+                    if (counts.isNotEmpty()) {
+                        onlineCountsHandler.post {
+                            if (_binding != null && ::gameAdapter.isInitialized) {
+                                gameAdapter.setOnlineCounts(counts)
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    // ignore, retry on the next tick
+                }
+                if (onlineCountsPolling) {
+                    onlineCountsHandler.postDelayed(this, 30_000L)
+                }
+            }.start()
+        }
     }
 
     private val gamesViewModel: GamesViewModel by activityViewModels()
@@ -242,6 +278,8 @@ class GamesFragment : Fragment() {
 
     override fun onPause() {
         super.onPause()
+        onlineCountsPolling = false
+        onlineCountsHandler.removeCallbacks(onlineCountsPoll)
         if (getCurrentViewType() == GameAdapter.VIEW_TYPE_CAROUSEL) {
             gamesViewModel.lastScrollPosition = (binding.gridGames as? CarouselRecyclerView)?.getClosestChildPosition() ?: 0
         }
@@ -249,6 +287,9 @@ class GamesFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        onlineCountsPolling = true
+        onlineCountsHandler.removeCallbacks(onlineCountsPoll)
+        onlineCountsHandler.post(onlineCountsPoll)
         if (getCurrentViewType() == GameAdapter.VIEW_TYPE_CAROUSEL) {
             (binding.gridGames as? CarouselRecyclerView)?.setupCarousel(true)
             (binding.gridGames as? CarouselRecyclerView)?.restoreScrollState(gamesViewModel.lastScrollPosition)

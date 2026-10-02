@@ -52,6 +52,16 @@ class GameAdapter(private val activity: AppCompatActivity) :
 
     private var viewType = 0
 
+    // [Nextendo] lowercase 16-digit hex title id -> players currently online
+    private var onlineCounts: Map<String, Int> = emptyMap()
+
+    fun setOnlineCounts(counts: Map<String, Int>) {
+        if (counts != onlineCounts) {
+            onlineCounts = counts
+            notifyDataSetChanged()
+        }
+    }
+
     fun setViewType(type: Int) {
         viewType = type
         notifyDataSetChanged()
@@ -156,13 +166,20 @@ class GameAdapter(private val activity: AppCompatActivity) :
             }
         }
 
+        private fun displayTitle(model: Game): String {
+            val base = model.title.replace("[\\t\\n\\r]+".toRegex(), " ")
+            val id = (model.programId.toLongOrNull() ?: 0L).toString(16).padStart(16, '0')
+            val count = onlineCounts[id] ?: return base
+            return if (count > 0) "$base  • $count en ligne" else base
+        }
+
         private fun bindListView(model: Game) {
             val listBinding = binding as CardGameListBinding
 
             listBinding.imageGameScreen.scaleType = ImageView.ScaleType.CENTER_CROP
             GameIconUtils.loadGameIcon(model, listBinding.imageGameScreen)
 
-            listBinding.textGameTitle.text = model.title.replace("[\\t\\n\\r]+".toRegex(), " ")
+            listBinding.textGameTitle.text = displayTitle(model)
             listBinding.textGameDeveloper.text = model.developer
 
             listBinding.textGameTitle.marquee()
@@ -180,7 +197,7 @@ class GameAdapter(private val activity: AppCompatActivity) :
             gridBinding.imageGameScreen.scaleType = ImageView.ScaleType.CENTER_CROP
             GameIconUtils.loadGameIcon(model, gridBinding.imageGameScreen)
 
-            gridBinding.textGameTitle.text = model.title.replace("[\\t\\n\\r]+".toRegex(), " ")
+            gridBinding.textGameTitle.text = displayTitle(model)
 
             gridBinding.textGameTitle.marquee()
             gridBinding.cardGameGrid.setOnClickListener { onClick(model) }
@@ -197,7 +214,7 @@ class GameAdapter(private val activity: AppCompatActivity) :
             gridCompactBinding.imageGameScreenCompact.scaleType = ImageView.ScaleType.CENTER_CROP
             GameIconUtils.loadGameIcon(model, gridCompactBinding.imageGameScreenCompact)
 
-            gridCompactBinding.textGameTitleCompact.text = model.title.replace("[\\t\\n\\r]+".toRegex(), " ")
+            gridCompactBinding.textGameTitleCompact.text = displayTitle(model)
 
             gridCompactBinding.textGameTitleCompact.marquee()
             gridCompactBinding.cardGameGridCompact.setOnClickListener { onClick(model) }
@@ -214,7 +231,7 @@ class GameAdapter(private val activity: AppCompatActivity) :
             carouselBinding.imageGameScreen.scaleType = ImageView.ScaleType.CENTER_CROP
             GameIconUtils.loadGameIcon(model, carouselBinding.imageGameScreen)
 
-            carouselBinding.textGameTitle.text = model.title.replace("[\\t\\n\\r]+".toRegex(), " ")
+            carouselBinding.textGameTitle.text = displayTitle(model)
             carouselBinding.textGameTitle.marquee()
             carouselBinding.cardGameCarousel.setOnClickListener { onClick(model) }
             carouselBinding.cardGameCarousel.setOnLongClickListener { onLongClick(model) }

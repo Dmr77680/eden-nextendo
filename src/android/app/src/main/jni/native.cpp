@@ -101,6 +101,9 @@ extern "C" {
 #include "video_core/vulkan_common/vulkan_surface.h"
 #include "video_core/shader_notify.h"
 #include "network/announce_multiplayer_session.h"
+#ifdef ENABLE_WEB_SERVICE
+#include "web_service/nextendo_api.h"
+#endif
 
 #define jconst [[maybe_unused]] const auto
 #define jauto [[maybe_unused]] auto
@@ -1492,6 +1495,23 @@ jstring Java_org_yuzu_yuzu_1emu_NativeLibrary_firmwareVersion(JNIEnv* env, jclas
     LOG_INFO(Frontend, "Installed firmware: {}", display_title);
 
     return Common::Android::ToJString(env, display_version);
+}
+
+jstring Java_org_yuzu_yuzu_1emu_NativeLibrary_nextendoOnlineCountsJson(JNIEnv* env, jclass clazz) {
+    std::string json = "{";
+#ifdef ENABLE_WEB_SERVICE
+    const auto counts = WebService::NextendoApi::GetOnlineCounts();
+    bool first = true;
+    for (const auto& [title_id, count] : counts) {
+        if (!first) {
+            json += ",";
+        }
+        json += "\"" + title_id + "\":" + std::to_string(count);
+        first = false;
+    }
+#endif
+    json += "}";
+    return Common::Android::ToJString(env, json);
 }
 
 jboolean Java_org_yuzu_yuzu_1emu_NativeLibrary_gameRequiresFirmware(JNIEnv* env, jclass clazz, jstring jprogramId) {

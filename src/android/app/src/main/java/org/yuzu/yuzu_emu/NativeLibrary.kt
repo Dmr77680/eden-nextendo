@@ -704,4 +704,6 @@ object NativeLibrary {
     external fun getFirmwareAvatarCount(): Int
     external fun getFirmwareAvatarImage(index: Int): ByteArray?
     external fun getDefaultAccountBackupJpeg(): ByteArray
+
+    external fun nextendoOnlineCountsJson(): String
 }
