@@ -1,4 +1,6 @@
-# Eden Nextendo
+<p align="center"><img src="./dist/den-logo.png" alt="DEN" width="160"></p>
+
+# DEN — Eden Nextendo
 
 Un fork de l'émulateur Switch **[Eden](https://git.eden-emu.dev/eden-emu/eden)** pour **Android**, adapté pour se connecter à **Nextendo**, un réseau de jeu en ligne alternatif pour la Switch.
 
