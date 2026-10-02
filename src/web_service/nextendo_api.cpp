@@ -183,8 +183,8 @@ std::string PercentEncode(std::string_view text) {
 std::string LoopbackPage(bool ok) {
     const std::string inner =
         ok ? "<h1 style='color:#33e86b'>Signed in</h1><p>You can close this tab and go back to "
-             "citron.</p>"
-           : "<h1 style='color:#ff8a8a'>Sign-in cancelled</h1><p>Go back to citron and try "
+             "DEN.</p>"
+           : "<h1 style='color:#ff8a8a'>Sign-in cancelled</h1><p>Go back to DEN and try "
              "again.</p>";
     return "<!doctype html><meta charset=utf-8><title>Nextendo</title>"
            "<body style='font-family:system-ui,sans-serif;background:#0f1115;color:#e7e9ee;"
@@ -508,21 +508,55 @@ LoginResult SignInWithBrowser(const std::function<void(const std::string&)>& ope
             out.token = read_str(json, "access_token");
         }
 
+        LOG_INFO(WebService, "SignInWithBrowser: expires_in={} scope=\"{}\"",
+                 read_u64(json, "expires_in"), read_str(json, "scope"));
+
         if ((out.pid == 0 || out.username.empty()) && !out.token.empty()) {
-            // Ask the profile endpoint for what the token response did not include.
-            const auto profile = Send("GET", "/api/profile", {}, out.token);
-            if (profile && profile->status == 200) {
-                const auto pj = nlohmann::json::parse(profile->body, nullptr, false);
+            // The OAuth token response carries no account fields: ask the identity endpoints.
+            for (const char* path : {"/oauth/userinfo", "/api/me", "/api/profile"}) {
+                const auto info = Send("GET", path, {}, out.token);
+                if (!info) {
+                    LOG_ERROR(WebService, "SignInWithBrowser: GET {} had no response", path);
+                    continue;
+                }
+                const auto pj = nlohmann::json::parse(info->body, nullptr, false);
+                std::string info_keys;
                 if (pj.is_object()) {
-                    if (out.pid == 0) {
-                        out.pid = read_u64(pj, "pid");
+                    for (const auto& item : pj.items()) {
+                        info_keys += item.key() + " ";
                     }
-                    if (out.username.empty()) {
-                        out.username = read_str(pj, "username");
+                }
+                LOG_INFO(WebService, "SignInWithBrowser: GET {} -> HTTP {}, fields: {}", path,
+                         info->status, info_keys);
+                if (info->status != 200 || !pj.is_object()) {
+                    continue;
+                }
+                std::vector<const nlohmann::json*> sources{&pj};
+                for (const char* key : {"account", "user", "profile"}) {
+                    const auto it = pj.find(key);
+                    if (it != pj.end() && it->is_object()) {
+                        sources.push_back(&*it);
                     }
-                    if (out.friend_code.empty()) {
-                        out.friend_code = read_str(pj, "friend_code");
+                }
+                for (const auto* src : sources) {
+                    for (const char* key : {"pid", "id", "sub", "principal_id"}) {
+                        if (out.pid == 0) {
+                            out.pid = read_u64(*src, key);
+                        }
                     }
+                    for (const char* key : {"username", "preferred_username", "name", "nickname"}) {
+                        if (out.username.empty()) {
+                            out.username = read_str(*src, key);
+                        }
+                    }
+                    for (const char* key : {"friend_code", "friendCode", "code"}) {
+                        if (out.friend_code.empty()) {
+                            out.friend_code = read_str(*src, key);
+                        }
+                    }
+                }
+                if (out.pid != 0) {
+                    break;
                 }
             }
         }
