@@ -1,90 +1,30 @@
-<!--
-# SPDX-FileCopyrightText: Copyright 2025 Eden Emulator Project
-# SPDX-License-Identifier: GPL-3.0-or-later
+# Eden Nextendo
 
-# SPDX-FileCopyrightText: 2018 yuzu Emulator Project
-# SPDX-License-Identifier: GPL-2.0-or-later
--->
-<!-- lang: en-GB -->
+Un fork de l'émulateur Switch **[Eden](https://git.eden-emu.dev/eden-emu/eden)** pour **Android**, adapté pour se connecter à **Nextendo**, un réseau de jeu en ligne alternatif pour la Switch.
 
-<h1 align="center">
-  <br>
-  <a href="https://git.eden-emu.dev/eden-emu/eden"><img src="./dist/qt_themes/default/icons/256x256/eden.png" alt="Eden" width="200"></a>
-  <br>
-  <b>Eden</b>
-  <br>
-</h1>
+> Projet personnel et non officiel. Il n'est affilié ni à l'équipe d'Eden, ni à Citron, ni à Nintendo.
 
-<h4 align="center"><b>Eden</b> is a free and open-source (FOSS) Switch 1 emulator started by developer Camille LaVey.
-<br>
-Written in C++, with builds for Windows, Linux, macOS, Android, FreeBSD and more.
-</h4>
+## Ce que ce fork ajoute
 
-<p align="center">
-    </a>
-    <a href="https://discord.gg/HstXbPch7X">
-        <img src="https://img.shields.io/discord/1367654015269339267?color=5865F2&label=Eden&logo=discord&logoColor=white"
-            alt="Discord">
-    </a>
-    <a href="https://stt.gg/qKgFEAbH">
-        <img src="https://img.shields.io/revolt/invite/qKgFEAbH?color=d61f3a&label=Stoat"
-            alt="Stoat">
-    </a>
-</p>
+- **Connexion à Nextendo** : résolution DNS, détection du NAT et échange des adresses des joueurs adaptés au réseau Nextendo.
+- **Jeu en ligne** : Mario Kart 8 Deluxe (salons, courses) et Super Mario Maker 2 fonctionnent en ligne. Mario Party Superstars a été testé brièvement.
+- **Liste d'amis et présence** : la liste d'amis Nextendo est visible dans les jeux et ta présence est publiée aux autres joueurs.
+- **Compteur de joueurs en ligne** : affiché en vert sur chaque jeu dans la liste de jeux.
 
-<p align="center">
-  <a href="#compatibility">Compatibility</a> |
-  <a href="#development">Development</a> |
-  <a href="#building">Building</a> |
-  <a href="#download">Download</a> |
-  <a href="#support">Support</a> |
-  <a href="#license">License</a>
-</p>
+Testé sur Retroid Pocket 5. Le jeu en ligne n'est pas stable à 100 % : des déconnexions peuvent arriver.
 
-## Compatibility
+## Utilisation
 
-The emulator is capable of running most commercial games at full speed, provided you meet the necessary hardware requirements.
+Ce dépôt ne contient et ne distribue aucun jeu ni firmware. Tu dois fournir toi-même tes jeux, tes clés et ton firmware, obtenus légalement depuis ta propre console.
 
-A list of supported games will be available in future. Please be patient.
+Le build Android se fait avec le workflow GitHub Actions **Build Android** (onglet *Actions*).
 
-Check out our [website](https://eden-emu.dev) for the latest news on exciting features, monthly progress reports, and more!
+## Crédits
 
-[![Packaging status](https://repology.org/badge/vertical-allrepos/eden-emulator.svg)](https://repology.org/project/eden-emulator/versions)
+- **[Eden](https://git.eden-emu.dev/eden-emu/eden)** : l'émulateur sur lequel ce projet est basé. Le README d'origine est conservé dans [README.eden.md](./README.eden.md).
+- **Citron** : certaines parties de la prise en charge de Nextendo (service d'amis, API) s'en inspirent.
+- **yuzu** : le projet dont Eden est issu.
 
-## Contribute
+## Licence
 
-To contribute to Eden; be it financially, code, bug reports, or otherwise, see our [Contributing guidelines](./CONTRIBUTING.md).
-
-## Documentation
-
-We have a user manual! See our [User Handbook](./docs/user/README.md).
-
-## Building
-
-See the [General Build Guide](docs/Build.md)
-
-For information on provided development tooling, see the [Tools directory](./tools)
-
-## Download
-
-You can download the latest releases from [our release page](https://git.eden-emu.dev/eden-emu/eden/releases).
-
-Save us some bandwidth! We have [mirrors available](./docs/user/ThirdParty.md#mirrors) as well.
-
-## License
-
-Eden is licensed under the GPLv3 (or any later version). Refer to the [LICENSE.txt](https://git.eden-emu.dev/eden-emu/eden/src/branch/master/LICENSE.txt) file.
-
-## Special thanks
-
-Super special thanks to Cloudflare for preventing the git server from blowing up.
-
-- Yuzu
-- Ryujinx
-- Sudachi
-- Citron
-- Torzu
-- Suyu
-- Ryubing
-
-And everyone who continues or had contributed to the project! <3
+Comme Eden, ce projet est sous licence **GPL-3.0 ou ultérieure**. Voir [LICENSE.txt](./LICENSE.txt). Les mentions de copyright des fichiers d'origine sont conservées.
