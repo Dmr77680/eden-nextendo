@@ -112,6 +112,32 @@ class GamesFragment : Fragment() {
         PreferenceManager.getDefaultSharedPreferences(YuzuApplication.appContext)
 
     private lateinit var mainActivity: MainActivity
+
+    // [Nextendo] Mii import: pick a .charinfo / .mii file and add it to the Mii database
+    private val miiPicker =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri == null) {
+                return@registerForActivityResult
+            }
+            val ctx = requireContext().applicationContext
+            Thread {
+                val code = try {
+                    val bytes = ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    if (bytes == null) 1 else org.yuzu.yuzu_emu.NativeLibrary.importMiiFile(bytes)
+                } catch (_: Exception) {
+                    1
+                }
+                val msg = when (code) {
+                    0 -> "Mii importé ! Il apparaîtra dans le sélecteur de Mii du jeu."
+                    1 -> "Fichier Mii non reconnu (taille inattendue)."
+                    2 -> "Ce Mii est invalide."
+                    else -> "Import impossible (base de Mii pleine ?)."
+                }
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
+                }
+            }.start()
+        }
     private val getGamesDirectory =
         registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { result ->
             if (result != null) {
@@ -364,7 +390,18 @@ class GamesFragment : Fragment() {
         binding.viewButton.setOnClickListener { showViewMenu(it) }
 
         // [Nextendo] friends screen
-        binding.friendsButton.setOnClickListener { NextendoFriendsDialog.show(requireActivity()) }
+        binding.friendsButton.setOnClickListener {
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Nextendo")
+                .setItems(arrayOf("Amis Nextendo", "Importer un Mii")) { _, which ->
+                    if (which == 0) {
+                        NextendoFriendsDialog.show(requireActivity())
+                    } else {
+                        miiPicker.launch(arrayOf("*/*"))
+                    }
+                }
+                .show()
+        }
 
         // Setup filter button
         binding.filterButton.setOnClickListener { view ->

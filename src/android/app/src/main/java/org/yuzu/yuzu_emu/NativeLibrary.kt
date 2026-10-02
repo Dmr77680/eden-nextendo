@@ -709,6 +709,8 @@ object NativeLibrary {
 
     external fun nextendoFriendsListJson(): String
 
+    external fun importMiiFile(data: ByteArray): Int
+
     // Android has no system CA file OpenSSL can read; the CA store is exported to a PEM.
     external fun setNextendoCaCertPath(path: String)
 

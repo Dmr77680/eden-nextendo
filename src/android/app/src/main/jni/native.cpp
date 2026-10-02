@@ -80,6 +80,11 @@ extern "C" {
 #include "core/hle/service/am/applet_manager.h"
 #include "core/hle/service/am/frontend/applets.h"
 #include "core/hle/service/filesystem/filesystem.h"
+#include "core/hle/service/mii/mii_manager.h"
+#include "core/hle/service/mii/types/char_info.h"
+#include "core/hle/service/mii/types/core_data.h"
+#include "core/hle/service/mii/types/store_data.h"
+#include "core/hle/service/mii/types/ver3_store_data.h"
 #include "core/hle/service/set/system_settings_server.h"
 #include "core/loader/loader.h"
 #include "frontend_common/config.h"
@@ -1540,6 +1545,52 @@ jstring Java_org_yuzu_yuzu_1emu_NativeLibrary_nextendoFriendsListJson(JNIEnv* en
     json += "]}";
 #endif
     return Common::Android::ToJString(env, json);
+}
+
+// 0 = ok, 1 = taille de fichier inconnue, 2 = Mii invalide, 3 = ajout refuse (base pleine ?)
+jint Java_org_yuzu_yuzu_1emu_NativeLibrary_importMiiFile(JNIEnv* env, jclass clazz,
+                                                         jbyteArray jdata) {
+    const jsize size = env->GetArrayLength(jdata);
+    std::vector<u8> data(static_cast<std::size_t>(size));
+    env->GetByteArrayRegion(jdata, 0, size, reinterpret_cast<jbyte*>(data.data()));
+
+    Service::Mii::MiiManager manager;
+    Service::Mii::DatabaseSessionMetadata metadata{};
+    metadata.interface_version = 1;
+    metadata.magic = Service::Mii::MiiMagic;
+    manager.Initialize(metadata);
+
+    Service::Mii::CharInfo char_info{};
+    if (data.size() == sizeof(Service::Mii::CharInfo)) {
+        std::memcpy(&char_info, data.data(), sizeof(char_info));
+    } else if (data.size() == sizeof(Service::Mii::StoreData)) {
+        Service::Mii::StoreData store_data{};
+        std::memcpy(&store_data, data.data(), sizeof(store_data));
+        if (store_data.IsValid() != Service::Mii::ValidationResult::NoErrors) {
+            return 2;
+        }
+        char_info.SetFromStoreData(store_data);
+    } else if (data.size() == sizeof(Service::Mii::Ver3StoreData)) {
+        Service::Mii::Ver3StoreData v3{};
+        std::memcpy(&v3, data.data(), sizeof(v3));
+        if (manager.ConvertV3ToCharInfo(char_info, v3).IsError()) {
+            return 2;
+        }
+    } else if (data.size() == sizeof(Service::Mii::CoreData)) {
+        Service::Mii::CoreData core{};
+        std::memcpy(&core, data.data(), sizeof(core));
+        if (manager.ConvertCoreDataToCharInfo(char_info, core).IsError()) {
+            return 2;
+        }
+    } else {
+        return 1;
+    }
+
+    if (char_info.Verify() != Service::Mii::ValidationResult::NoErrors) {
+        return 2;
+    }
+    const auto result = manager.Append(metadata, char_info);
+    return result.IsError() ? 3 : 0;
 }
 
 jstring Java_org_yuzu_yuzu_1emu_NativeLibrary_nextendoOnlineCountsJson(JNIEnv* env, jclass clazz) {
