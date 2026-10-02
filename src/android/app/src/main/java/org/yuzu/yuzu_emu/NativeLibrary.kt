@@ -707,6 +707,8 @@ object NativeLibrary {
 
     external fun nextendoOnlineCountsJson(): String
 
+    external fun nextendoFriendsListJson(): String
+
     // Android has no system CA file OpenSSL can read; the CA store is exported to a PEM.
     external fun setNextendoCaCertPath(path: String)
 

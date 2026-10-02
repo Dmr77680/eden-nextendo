@@ -1504,6 +1504,44 @@ void Java_org_yuzu_yuzu_1emu_NativeLibrary_setNextendoCaCertPath(JNIEnv* env, jc
 #endif
 }
 
+jstring Java_org_yuzu_yuzu_1emu_NativeLibrary_nextendoFriendsListJson(JNIEnv* env, jclass clazz) {
+    std::string json = "{\"ok\":false,\"error\":\"\",\"friends\":[]}";
+#ifdef ENABLE_WEB_SERVICE
+    const auto esc = [](const std::string& v) {
+        std::string out;
+        for (const char c : v) {
+            switch (c) {
+            case '"': out += "\\\""; break;
+            case '\\': out += "\\\\"; break;
+            case '\n': out += "\\n"; break;
+            case '\r': out += "\\r"; break;
+            case '\t': out += "\\t"; break;
+            default:
+                if (static_cast<unsigned char>(c) < 0x20) {
+                    out += ' ';
+                } else {
+                    out += c;
+                }
+            }
+        }
+        return out;
+    };
+    const auto list = WebService::NextendoApi::GetFriends();
+    json = std::string("{\"ok\":") + (list.ok ? "true" : "false") + ",\"error\":\"" +
+           esc(list.error) + "\",\"friends\":[";
+    for (std::size_t i = 0; i < list.friends.size(); ++i) {
+        const auto& f = list.friends[i];
+        json += i == 0 ? "" : ",";
+        json += "{\"pid\":" + std::to_string(f.pid) + ",\"name\":\"" + esc(f.name) +
+                "\",\"status\":" + std::to_string(f.presence_status) + ",\"app_id\":\"" +
+                esc(f.app_id) + "\",\"app_name\":\"" + esc(f.app_name) + "\",\"image\":\"" +
+                esc(f.image_base64) + "\"}";
+    }
+    json += "]}";
+#endif
+    return Common::Android::ToJString(env, json);
+}
+
 jstring Java_org_yuzu_yuzu_1emu_NativeLibrary_nextendoOnlineCountsJson(JNIEnv* env, jclass clazz) {
     std::string json = "{";
 #ifdef ENABLE_WEB_SERVICE

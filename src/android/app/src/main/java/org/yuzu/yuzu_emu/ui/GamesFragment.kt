@@ -363,6 +363,9 @@ class GamesFragment : Fragment() {
         // Setup view button
         binding.viewButton.setOnClickListener { showViewMenu(it) }
 
+        // [Nextendo] friends screen
+        binding.friendsButton.setOnClickListener { NextendoFriendsDialog.show(requireActivity()) }
+
         // Setup filter button
         binding.filterButton.setOnClickListener { view ->
             showFilterMenu(view)
