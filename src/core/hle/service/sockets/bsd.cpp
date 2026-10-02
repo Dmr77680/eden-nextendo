@@ -678,7 +678,10 @@ Errno BSD_USA::BindImpl(s32 fd, std::span<const u8> addr) {
     LOG_INFO(Service, "[Nextendo][UDP] Bind fd={} to {}:{}", fd,
              Network::IPv4AddressToString(host_bind.ip), host_bind.portno);
 
-    return Translate(file_descriptors[fd]->socket->Bind(host_bind));
+    const auto bind_result = Translate(file_descriptors[fd]->socket->Bind(host_bind));
+    LOG_INFO(Service, "[Nextendo][UDP] Bind fd={} port={} -> errno={}", fd, host_bind.portno,
+             static_cast<s32>(bind_result));
+    return bind_result;
 }
 
 Errno BSD_USA::ConnectImpl(s32 fd, std::span<const u8> addr) {
@@ -983,6 +986,23 @@ std::pair<s32, Errno> BSD_USA::RecvFromImpl(s32 fd, u32 flags, std::vector<u8>& 
                     {message[8], message[9], message[10], message[11]});
                 LOG_INFO(Service, "[Nextendo] NAT check reply from port {} recorded",
                          addr_in.portno);
+                {
+                    static std::atomic<u32> nat_reply_count{0};
+                    if (++nat_reply_count <= 12) {
+                        auto be32 = [&](size_t i) {
+                            return (static_cast<u32>(message[i]) << 24) |
+                                   (static_cast<u32>(message[i + 1]) << 16) |
+                                   (static_cast<u32>(message[i + 2]) << 8) |
+                                   static_cast<u32>(message[i + 3]);
+                        };
+                        LOG_INFO(Service,
+                                 "[Nextendo][UDP] NAT reply fields fd={} type={} ext_port={} "
+                                 "ext_ip={}.{}.{}.{} server_ip={}.{}.{}.{} (from {}:{})",
+                                 fd, be32(0), be32(4), message[8], message[9], message[10],
+                                 message[11], message[12], message[13], message[14], message[15],
+                                 Network::IPv4AddressToString(addr_in.ip), addr_in.portno);
+                    }
+                }
             }
 
             // [Nextendo][UDP] Diagnostic : d'ou viennent les datagrammes recus ?
