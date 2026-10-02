@@ -80,6 +80,7 @@ extern "C" {
 #include "core/hle/service/am/applet_manager.h"
 #include "core/hle/service/am/frontend/applets.h"
 #include "core/hle/service/filesystem/filesystem.h"
+#include "core/hle/service/mii/mii_database.h"
 #include "core/hle/service/mii/mii_manager.h"
 #include "core/hle/service/mii/types/char_info.h"
 #include "core/hle/service/mii/types/core_data.h"
@@ -1559,6 +1560,32 @@ jint Java_org_yuzu_yuzu_1emu_NativeLibrary_importMiiFile(JNIEnv* env, jclass cla
     metadata.interface_version = 1;
     metadata.magic = Service::Mii::MiiMagic;
     manager.Initialize(metadata);
+
+    // Base complete (MiiDatabase.dat) : on importe tous les Mii qu'elle contient.
+    if (data.size() == sizeof(Service::Mii::NintendoFigurineDatabase)) {
+        Service::Mii::NintendoFigurineDatabase db{};
+        std::memcpy(&db, data.data(), sizeof(db));
+        if (db.CheckIntegrity().IsError()) {
+            return 2;
+        }
+        int imported = 0;
+        for (std::size_t i = 0; i < db.GetDatabaseLength(); ++i) {
+            const auto store_data = db.Get(i);
+            if (store_data.IsSpecial() ||
+                store_data.IsValid() != Service::Mii::ValidationResult::NoErrors) {
+                continue;
+            }
+            Service::Mii::CharInfo info{};
+            info.SetFromStoreData(store_data);
+            if (info.Verify() != Service::Mii::ValidationResult::NoErrors) {
+                continue;
+            }
+            if (!manager.Append(metadata, info).IsError()) {
+                ++imported;
+            }
+        }
+        return imported > 0 ? 10 + imported : 3;
+    }
 
     Service::Mii::CharInfo char_info{};
     if (data.size() == sizeof(Service::Mii::CharInfo)) {

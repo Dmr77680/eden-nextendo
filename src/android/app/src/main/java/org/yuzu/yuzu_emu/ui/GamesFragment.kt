@@ -128,6 +128,7 @@ class GamesFragment : Fragment() {
                     1
                 }
                 val msg = when (code) {
+                    in 10..200 -> "${code - 10} Mii importé(s) depuis la base. Ils apparaîtront dans le sélecteur de Mii du jeu."
                     0 -> "Mii importé ! Il apparaîtra dans le sélecteur de Mii du jeu."
                     1 -> "Fichier Mii non reconnu (taille inattendue)."
                     2 -> "Ce Mii est invalide."
