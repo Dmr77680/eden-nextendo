@@ -12,6 +12,16 @@ DEN est un fork de l'émulateur Switch **[Eden](https://git.eden-emu.dev/eden-em
 <tr><td align="center" width="50%"><img src="docs/screenshots/mii.jpg" alt="Mii importé dans le jeu" width="100%"><br><sub>Mii importé dans le jeu</sub></td><td align="center" width="50%"><img src="docs/screenshots/race.jpg" alt="Course en ligne à 60 FPS" width="100%"><br><sub>Course en ligne à 60 FPS</sub></td></tr>
 </table>
 
+## 🔑 Prérequis : un compte Nextendo
+
+Pour jouer en ligne avec DEN, il te faut un **compte Nextendo gratuit**, à créer sur **[nextendo.network](https://nextendo.network)**. Sans compte, DEN fonctionne comme un émulateur Switch classique, mais ni le jeu en ligne ni la liste d'amis ne sont disponibles.
+
+1. Crée ton compte sur [nextendo.network](https://nextendo.network) et **confirme ton adresse e-mail**.
+2. Dans DEN, ouvre le menu Nextendo et choisis **« Se connecter à Nextendo »** : la connexion se fait dans ton navigateur, DEN ne voit jamais ton mot de passe.
+3. Tu ne peux être en ligne que sur **un seul appareil à la fois** avec le même compte.
+
+<!-- DEN_ACCOUNT_REQ -->
+
 ## ✅ Ce qui fonctionne
 
 - **Jeu en ligne sur Nextendo** : Mario Kart 8 Deluxe (salons et courses, stable dans nos tests), Super Mario Maker 2. Mario Party Superstars a été testé brièvement.
@@ -63,6 +73,14 @@ DEN is a fork of the **[Eden](https://git.eden-emu.dev/eden-emu/eden)** Switch e
 <tr><td align="center" width="50%"><img src="docs/screenshots/online.jpg" alt="Mario Kart 8 Deluxe: online mode" width="100%"><br><sub>Mario Kart 8 Deluxe: online mode</sub></td><td align="center" width="50%"><img src="docs/screenshots/lobby.jpg" alt="Online lobby with other players" width="100%"><br><sub>Online lobby with other players</sub></td></tr>
 <tr><td align="center" width="50%"><img src="docs/screenshots/mii.jpg" alt="Imported Mii in game" width="100%"><br><sub>Imported Mii in game</sub></td><td align="center" width="50%"><img src="docs/screenshots/race.jpg" alt="Online race at 60 FPS" width="100%"><br><sub>Online race at 60 FPS</sub></td></tr>
 </table>
+
+## 🔑 Requirement: a Nextendo account
+
+To play online with DEN you need a **free Nextendo account**, created at **[nextendo.network](https://nextendo.network)**. Without an account DEN works as a regular Switch emulator, but online play and the friends list are not available.
+
+1. Create your account at [nextendo.network](https://nextendo.network) and **confirm your e-mail address**.
+2. In DEN, open the Nextendo menu and choose **"Sign in to Nextendo"**: the sign-in happens in your browser, DEN never sees your password.
+3. You can only be online on **one device at a time** with the same account.
 
 ## ✅ What works
 
