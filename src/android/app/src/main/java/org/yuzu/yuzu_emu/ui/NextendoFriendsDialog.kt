@@ -41,6 +41,7 @@ object NextendoFriendsDialog {
         "010047700d540000" to "Clubhouse Games: 51 Worldwide Classics",
         "0100c6f01c4f8000" to "METAL GEAR SOLID: Peace Walker",
         "01006fe013472000" to "Mario Party Superstars",
+        "010019401051c000" to "Mario Strikers: Battle League",
         "01006bd001e06000" to "Minecraft: Nintendo Switch Edition",
         "0100ad9012510000" to "PAC-MAN 99",
         "0100f9f00c696000" to "Crash Team Racing Nitro-Fueled",

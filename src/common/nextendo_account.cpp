@@ -27,6 +27,8 @@ u64 g_pid = 0;
 std::string g_username;
 std::string g_friend_code;
 std::string g_token;
+std::string g_refresh_token; // DEN_REFRESH
+u64 g_token_expiry = 0;
 u64 g_generation = 0;
 
 std::filesystem::path FilePath() {
@@ -96,6 +98,14 @@ void EnsureLoaded() {
             g_friend_code = value;
         } else if (key == "token") {
             g_token = value;
+        } else if (key == "refresh_token") {
+            g_refresh_token = value;
+        } else if (key == "token_expiry") {
+            try {
+                g_token_expiry = std::stoull(value);
+            } catch (...) {
+                g_token_expiry = 0;
+            }
         }
     }
 }
@@ -104,8 +114,9 @@ void EnsureLoaded() {
 void WriteFile() {
     void(FS::CreateParentDirs(FilePath()));
     const std::string contents =
-        fmt::format("pid={}\nusername={}\nfriend_code={}\ntoken={}\n", g_pid, g_username,
-                    g_friend_code, g_token);
+        fmt::format("pid={}\nusername={}\nfriend_code={}\ntoken={}\nrefresh_token={}\n"
+                    "token_expiry={}\n",
+                    g_pid, g_username, g_friend_code, g_token, g_refresh_token, g_token_expiry);
     void(FS::WriteStringToFile(FilePath(), FS::FileType::TextFile, contents));
 }
 
@@ -166,8 +177,35 @@ void Clear() {
     g_username.clear();
     g_friend_code.clear();
     g_token.clear();
+    g_refresh_token.clear();
+    g_token_expiry = 0;
     ++g_generation;
     void(FS::RemoveFile(FilePath()));
+}
+
+std::string GetRefreshToken() {
+    std::lock_guard lock{g_mutex};
+    EnsureLoaded();
+    return g_refresh_token;
+}
+
+u64 GetTokenExpiry() {
+    std::lock_guard lock{g_mutex};
+    EnsureLoaded();
+    return g_token_expiry;
+}
+
+void SetSessionTokens(std::string_view access_token, std::string_view refresh_token,
+                      u64 expires_at) {
+    std::lock_guard lock{g_mutex};
+    EnsureLoaded();
+    g_loaded = true;
+    if (!access_token.empty()) {
+        g_token = access_token;
+    }
+    g_refresh_token = refresh_token;
+    g_token_expiry = expires_at;
+    WriteFile();
 }
 
 void UpdateUsername(std::string_view username) {

@@ -279,15 +279,100 @@ httplib::Client& SharedClient() {
     return client;
 }
 
+// DEN_REFRESH: renews the access token with the stored refresh token. Nextendo rotates the
+// refresh token on every use (the old one dies a minute later), so the new one is stored at once.
+// `definitive_reject` is set when the server refused the refresh token itself (not a network error).
+bool RefreshAccessToken(bool* definitive_reject = nullptr) {
+    static std::mutex refresh_mutex;
+    static std::chrono::steady_clock::time_point last_ok{};
+    std::lock_guard lock{refresh_mutex};
+    if (definitive_reject != nullptr) {
+        *definitive_reject = false;
+    }
+    // Another thread may have just renewed it while we waited for the lock.
+    if (last_ok != std::chrono::steady_clock::time_point{} &&
+        std::chrono::steady_clock::now() - last_ok < std::chrono::seconds{20}) {
+        return true;
+    }
+    const std::string refresh = Common::NextendoAccount::GetRefreshToken();
+    if (refresh.empty()) {
+        return false;
+    }
+
+    httplib::Client client{BaseUrl()};
+    client.set_connection_timeout(TimeoutSeconds);
+    client.set_read_timeout(TimeoutSeconds);
+    client.set_follow_location(true);
+    ApplyCaCertPath(client);
+    const httplib::Params form{
+        {"grant_type", "refresh_token"},
+        {"refresh_token", refresh},
+        {"client_id", ClientId},
+    };
+    const auto result = client.Post("/api/oauth/token", form);
+    if (!result) {
+        LOG_WARNING(WebService, "RefreshAccessToken: no response (network)");
+        return false;
+    }
+    if (result->status != 200) {
+        LOG_WARNING(WebService, "RefreshAccessToken: HTTP {} body_len={}", result->status,
+                    result->body.size());
+        if (definitive_reject != nullptr) {
+            *definitive_reject = result->status == 400 || result->status == 401;
+        }
+        return false;
+    }
+    const auto json = nlohmann::json::parse(result->body, nullptr, false);
+    if (!json.is_object()) {
+        return false;
+    }
+    const auto str = [&json](const char* key) -> std::string {
+        const auto it = json.find(key);
+        return (it != json.end() && it->is_string()) ? it->get<std::string>() : std::string{};
+    };
+    const std::string access = str("access_token");
+    if (access.empty()) {
+        LOG_WARNING(WebService, "RefreshAccessToken: response had no access_token");
+        return false;
+    }
+    std::string next_refresh = str("refresh_token");
+    if (next_refresh.empty()) {
+        next_refresh = refresh;
+    }
+    u64 ttl = 3600;
+    const auto exp = json.find("expires_in");
+    if (exp != json.end() && exp->is_number_unsigned()) {
+        ttl = exp->get<u64>();
+    }
+    const u64 now = static_cast<u64>(std::chrono::duration_cast<std::chrono::seconds>(
+                                         std::chrono::system_clock::now().time_since_epoch())
+                                         .count());
+    Common::NextendoAccount::SetSessionTokens(access, next_refresh, now + ttl);
+    last_ok = std::chrono::steady_clock::now();
+    LOG_INFO(WebService, "RefreshAccessToken: session renewed (ttl={}s)", ttl);
+    return true;
+}
+
 httplib::Result Send(const std::string& method, const std::string& path, const std::string& body,
                      const std::string& bearer, const httplib::Headers& extra_headers = {}) {
+    // DEN_REFRESH: renew the stored access token shortly before it expires.
+    std::string effective_bearer = bearer;
+    if (!bearer.empty() && bearer == Common::NextendoAccount::GetToken()) {
+        const u64 expiry = Common::NextendoAccount::GetTokenExpiry();
+        const u64 now = static_cast<u64>(std::chrono::duration_cast<std::chrono::seconds>(
+                                             std::chrono::system_clock::now().time_since_epoch())
+                                             .count());
+        if (expiry != 0 && now + 60 >= expiry && RefreshAccessToken()) {
+            effective_bearer = Common::NextendoAccount::GetToken();
+        }
+    }
     static std::mutex client_mutex;
     std::lock_guard lock{client_mutex};
     httplib::Client& client = SharedClient();
 
     httplib::Headers headers{{"User-Agent", "citron"}};
-    if (!bearer.empty()) {
-        headers.emplace("Authorization", "Bearer " + bearer);
+    if (!effective_bearer.empty()) {
+        headers.emplace("Authorization", "Bearer " + effective_bearer);
     }
     for (const auto& [key, value] : extra_headers) {
         headers.emplace(key, value);
@@ -311,6 +396,15 @@ httplib::Result Send(const std::string& method, const std::string& path, const s
 bool ClearSessionIfRejected(const httplib::Result& result) {
     if (!result || result->status != 401) {
         return false;
+    }
+    // DEN_REFRESH: try the refresh token before giving up on the session.
+    bool definitive_reject = false;
+    if (RefreshAccessToken(&definitive_reject)) {
+        LOG_INFO(WebService, "Nextendo token expired; renewed it, this request is dropped");
+        return true;
+    }
+    if (!definitive_reject && !Common::NextendoAccount::GetRefreshToken().empty()) {
+        return true; // network trouble while renewing: keep the session
     }
     LOG_WARNING(WebService, "Nextendo rejected the stored account token; signing out");
     Common::NextendoAccount::Clear();
@@ -567,6 +661,17 @@ LoginResult SignInWithBrowser(const std::function<void(const std::string&)>& ope
                       out.pid, out.token.empty());
             return out;
         }
+        {
+            // DEN_REFRESH
+            const std::string refresh = read_str(json, "refresh_token");
+            const u64 ttl = read_u64(json, "expires_in");
+            const u64 now = static_cast<u64>(std::chrono::duration_cast<std::chrono::seconds>(
+                                                 std::chrono::system_clock::now().time_since_epoch())
+                                                 .count());
+            LOG_INFO(WebService, "SignInWithBrowser: refresh_token_present={} ttl={}",
+                     !refresh.empty(), ttl);
+            Common::NextendoAccount::SetSessionTokens(out.token, refresh, ttl != 0 ? now + ttl : 0);
+        }
         out.ok = true;
         LOG_INFO(WebService, "SignInWithBrowser: signed in as pid={} username={}", out.pid,
                  out.username);
@@ -584,7 +689,10 @@ std::string FetchNexToken(const std::string& session_token) {
     if (session_token.empty()) {
         return {};
     }
-    const auto result = Send("GET", "/api/nex-token", {}, session_token);
+    auto result = Send("GET", "/api/nex-token", {}, session_token);
+    if (result && result->status == 401 && RefreshAccessToken()) {
+        result = Send("GET", "/api/nex-token", {}, Common::NextendoAccount::GetToken());
+    }
     if (!result) {
         LOG_ERROR(WebService, "FetchNexToken: no response");
         return {};

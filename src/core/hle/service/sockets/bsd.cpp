@@ -805,7 +805,8 @@ Errno BSD_USA::BindImpl(s32 fd, std::span<const u8> addr) {
         return Errno::BADF;
     }
     // [Nextendo] sockaddr_in6 (28 octets) : IPv6 non supporte, echec propre pour que le jeu retombe sur IPv4.
-    if (addr.size() != sizeof(SockAddrIn)) {
+    // DEN_CONNECT_FIX: sockaddr_in is 16 bytes on the guest (sockaddr_in6 is 28).
+    if (addr.size() > 16) {
         LOG_WARNING(Service, "[Nextendo] Bind fd={} adresse de taille {} (IPv6 ?), EAFNOSUPPORT", fd, addr.size());
         return Errno::AFNOSUPPORT;
     }
@@ -830,7 +831,8 @@ Errno BSD_USA::ConnectImpl(s32 fd, std::span<const u8> addr) {
         LOG_WARNING(Service, "Uninitialized socket");
         return Errno::BADF;
     }
-    if (addr.size() != sizeof(SockAddrIn)) {
+    // DEN_CONNECT_FIX: sockaddr_in is 16 bytes on the guest (sockaddr_in6 is 28).
+    if (addr.size() > 16) {
         LOG_WARNING(Service, "[Nextendo] Connect fd={} adresse de taille {} (IPv6 ?), EAFNOSUPPORT", fd, addr.size());
         return Errno::AFNOSUPPORT;
     }

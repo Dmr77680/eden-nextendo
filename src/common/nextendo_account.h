@@ -19,6 +19,13 @@ std::string GetUsername();
 std::string GetFriendCode();
 std::string GetToken();
 
+// DEN_REFRESH: OAuth refresh token (30 days) and the unix time the access token expires (0 = unknown).
+std::string GetRefreshToken();
+u64 GetTokenExpiry();
+// Stores a renewed session without touching the account identity or the generation counter.
+void SetSessionTokens(std::string_view access_token, std::string_view refresh_token,
+                      u64 expires_at);
+
 // Bumped by every Save()/Clear(). Lets callers that cache derived data (e.g. the acc
 // service's signed id_token, which embeds GetToken() in an "nnex" claim) detect a link
 // state change and invalidate their cache instead of relying on a time-based expiry that
