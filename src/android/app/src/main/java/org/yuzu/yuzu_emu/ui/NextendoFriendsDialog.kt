@@ -116,13 +116,13 @@ object NextendoFriendsDialog {
                 setPadding(0, dp(16), 0, dp(16))
             })
         }
-        message("Chargement…")
+        message(activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_loading))
 
         val dialog = MaterialAlertDialogBuilder(activity)
-            .setTitle("Amis Nextendo")
+            .setTitle(activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_friends))
             .setView(scroll)
-            .setPositiveButton("Actualiser", null)
-            .setNegativeButton("Fermer", null)
+            .setPositiveButton(activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_refresh), null)
+            .setNegativeButton(activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_close), null)
             .create()
 
         fun row(f: Friend): View {
@@ -170,9 +170,9 @@ object NextendoFriendsDialog {
             val playing = f.status > 0 && (f.appName.isNotEmpty() || f.appId.isNotEmpty())
             col.addView(TextView(activity).apply {
                 text = when {
-                    f.status <= 0 -> "Hors ligne"
-                    playing -> "En jeu : " + gameName(f.appId, f.appName)
-                    else -> "En ligne"
+                    f.status <= 0 -> activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_offline)
+                    playing -> activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_playing, gameName(f.appId, f.appName))
+                    else -> activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_online)
                 }
                 textSize = 13f
                 setTextColor(if (f.status > 0) GREEN else GRAY)
@@ -182,7 +182,7 @@ object NextendoFriendsDialog {
         }
 
         fun refresh() {
-            message("Chargement…")
+            message(activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_loading))
             Thread {
                 fetchTitleNames()
                 var ok = false
@@ -210,16 +210,16 @@ object NextendoFriendsDialog {
                     if (!dialog.isShowing) return@runOnUiThread
                     when {
                         !ok -> message(
-                            "Impossible de charger les amis" +
+                            activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_friends_load_failed) +
                                 (if (error.isNotEmpty()) " ($error)" else "") +
-                                ". Vérifie que ton compte Nextendo est lié."
+                                ". " + activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_check_linked)
                         )
-                        friends.isEmpty() -> message("Aucun ami pour le moment.")
+                        friends.isEmpty() -> message(activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_no_friends))
                         else -> {
                             list.removeAllViews()
                             val online = friends.count { it.status > 0 }
                             list.addView(TextView(activity).apply {
-                                text = "$online en ligne sur ${friends.size}"
+                                text = activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_friends_online_count, online, friends.size)
                                 textSize = 13f
                                 setTextColor(GREEN)
                                 setPadding(0, 0, 0, dp(4))

@@ -732,7 +732,11 @@ object NativeLibrary {
     fun onNextendoSignInResult(success: Boolean, message: String) {
         android.os.Handler(android.os.Looper.getMainLooper()).post {
             val ctx = YuzuApplication.appContext
-            val text = if (success) "Connecté à Nextendo : $message" else "Connexion échouée : $message"
+            val text = if (success) {
+                ctx.getString(org.yuzu.yuzu_emu.R.string.nextendo_signin_ok, message)
+            } else {
+                ctx.getString(org.yuzu.yuzu_emu.R.string.nextendo_signin_fail, message)
+            }
             android.widget.Toast.makeText(ctx, text, android.widget.Toast.LENGTH_LONG).show()
             try {
                 org.yuzu.yuzu_emu.utils.NextendoSignInService.stop(ctx)

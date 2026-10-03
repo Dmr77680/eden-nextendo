@@ -1887,4 +1887,32 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="add_folders">Add Folder</string>
     <string name="percent">%1$d%%</string>
 
+    <!-- DEN_I18N : textes Nextendo -->
+    <string name="nextendo_friends">Nextendo friends</string>
+    <string name="nextendo_import_mii">Import a Mii</string>
+    <string name="nextendo_sign_in">Sign in to Nextendo</string>
+    <string name="nextendo_sign_out">Sign out (%1$s)</string>
+    <string name="nextendo_signed_out">Signed out of Nextendo</string>
+    <string name="nextendo_mii_imported_many">%1$d Mii imported from the database. They will appear in the game\'s Mii selector.</string>
+    <string name="nextendo_mii_imported">Mii imported! It will appear in the game\'s Mii selector.</string>
+    <string name="nextendo_mii_unrecognized">Unrecognized Mii file (unexpected size).</string>
+    <string name="nextendo_mii_invalid">This Mii is invalid.</string>
+    <string name="nextendo_mii_failed">Import failed (Mii database full?).</string>
+    <string name="nextendo_signin_notif_title">Signing in to Nextendo</string>
+    <string name="nextendo_signin_notif_text">Finish signing in from your browser</string>
+    <string name="nextendo_signin_ok">Signed in to Nextendo: %1$s</string>
+    <string name="nextendo_signin_fail">Sign-in failed: %1$s</string>
+    <string name="nextendo_loading">Loading…</string>
+    <string name="nextendo_refresh">Refresh</string>
+    <string name="nextendo_close">Close</string>
+    <string name="nextendo_offline">Offline</string>
+    <string name="nextendo_online">Online</string>
+    <string name="nextendo_playing">Playing: %1$s</string>
+    <string name="nextendo_friends_load_failed">Could not load friends</string>
+    <string name="nextendo_check_linked">Check that your Nextendo account is linked.</string>
+    <string name="nextendo_no_friends">No friends yet.</string>
+    <string name="nextendo_friends_online_count">%1$d online out of %2$d</string>
+    <string name="nextendo_badge_update">UPDATE %1$s</string>
+    <string name="nextendo_badge_online">%1$d online</string>
+
 </resources>

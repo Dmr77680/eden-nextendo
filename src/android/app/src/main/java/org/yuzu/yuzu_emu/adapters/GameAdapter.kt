@@ -220,7 +220,7 @@ class GameAdapter(private val activity: AppCompatActivity) :
             }
             val text = android.text.SpannableStringBuilder(base)
             if (needsUpdate) {
-                val badge = "\u26A0 MAJ $wanted"
+                val badge = "\u26A0 " + binding.root.context.getString(R.string.nextendo_badge_update, wanted)
                 val start = text.length + 2
                 text.append("  ").append(badge)
                 text.setSpan(
@@ -231,7 +231,7 @@ class GameAdapter(private val activity: AppCompatActivity) :
                 )
             }
             if (count > 0) {
-                val badge = "\u2022 $count en ligne"
+                val badge = "\u2022 " + binding.root.context.getString(R.string.nextendo_badge_online, count)
                 val start = text.length + 2
                 text.append("  ").append(badge)
                 text.setSpan(

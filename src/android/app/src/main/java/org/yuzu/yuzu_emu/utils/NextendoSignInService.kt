@@ -36,8 +36,8 @@ class NextendoSignInService : Service() {
         val notification =
             NotificationCompat.Builder(this, getString(R.string.app_notification_channel_id))
                 .setSmallIcon(R.drawable.ic_stat_notification_logo)
-                .setContentTitle("Connexion à Nextendo")
-                .setContentText("Termine la connexion dans ton navigateur")
+                .setContentTitle(getString(R.string.nextendo_signin_notif_title))
+                .setContentText(getString(R.string.nextendo_signin_notif_text))
                 .setOngoing(true)
                 .build()
         startForeground(NOTIFICATION_ID, notification)

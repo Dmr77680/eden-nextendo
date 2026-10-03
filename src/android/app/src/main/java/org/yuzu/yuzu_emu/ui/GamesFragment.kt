@@ -171,11 +171,11 @@ class GamesFragment : Fragment() {
                     1
                 }
                 val msg = when (code) {
-                    in 10..200 -> "${code - 10} Mii importé(s) depuis la base. Ils apparaîtront dans le sélecteur de Mii du jeu."
-                    0 -> "Mii importé ! Il apparaîtra dans le sélecteur de Mii du jeu."
-                    1 -> "Fichier Mii non reconnu (taille inattendue)."
-                    2 -> "Ce Mii est invalide."
-                    else -> "Import impossible (base de Mii pleine ?)."
+                    in 10..200 -> ctx.getString(org.yuzu.yuzu_emu.R.string.nextendo_mii_imported_many, code - 10)
+                    0 -> ctx.getString(org.yuzu.yuzu_emu.R.string.nextendo_mii_imported)
+                    1 -> ctx.getString(org.yuzu.yuzu_emu.R.string.nextendo_mii_unrecognized)
+                    2 -> ctx.getString(org.yuzu.yuzu_emu.R.string.nextendo_mii_invalid)
+                    else -> ctx.getString(org.yuzu.yuzu_emu.R.string.nextendo_mii_failed)
                 }
                 android.os.Handler(android.os.Looper.getMainLooper()).post {
                     Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
@@ -439,10 +439,10 @@ class GamesFragment : Fragment() {
                 .setTitle("Nextendo")
                 .setItems(
                     arrayOf(
-                        "Amis Nextendo",
-                        "Importer un Mii",
+                        getString(org.yuzu.yuzu_emu.R.string.nextendo_friends),
+                        getString(org.yuzu.yuzu_emu.R.string.nextendo_import_mii),
                         org.yuzu.yuzu_emu.NativeLibrary.nextendoAccountName().let {
-                            if (it.isEmpty()) "Se connecter à Nextendo" else "Se déconnecter ($it)"
+                            if (it.isEmpty()) getString(org.yuzu.yuzu_emu.R.string.nextendo_sign_in) else getString(org.yuzu.yuzu_emu.R.string.nextendo_sign_out, it)
                         }
                     )
                 ) { _, which ->
@@ -454,7 +454,7 @@ class GamesFragment : Fragment() {
                         org.yuzu.yuzu_emu.utils.NextendoSignInService.start(requireContext())
                     } else {
                         org.yuzu.yuzu_emu.NativeLibrary.nextendoSignOut()
-                        Toast.makeText(requireContext(), "Déconnecté de Nextendo", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), getString(org.yuzu.yuzu_emu.R.string.nextendo_signed_out), Toast.LENGTH_SHORT).show()
                     }
                 }
                 .show()

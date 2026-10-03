@@ -1084,4 +1084,32 @@
     <string name="add_folders">Ajouter un dossier</string>
     <string name="percent">%1$d%%</string>
 
+    <!-- DEN_I18N : textes Nextendo -->
+    <string name="nextendo_friends">Amis Nextendo</string>
+    <string name="nextendo_import_mii">Importer un Mii</string>
+    <string name="nextendo_sign_in">Se connecter à Nextendo</string>
+    <string name="nextendo_sign_out">Se déconnecter (%1$s)</string>
+    <string name="nextendo_signed_out">Déconnecté de Nextendo</string>
+    <string name="nextendo_mii_imported_many">%1$d Mii importé(s) depuis la base. Ils apparaîtront dans le sélecteur de Mii du jeu.</string>
+    <string name="nextendo_mii_imported">Mii importé ! Il apparaîtra dans le sélecteur de Mii du jeu.</string>
+    <string name="nextendo_mii_unrecognized">Fichier Mii non reconnu (taille inattendue).</string>
+    <string name="nextendo_mii_invalid">Ce Mii est invalide.</string>
+    <string name="nextendo_mii_failed">Import impossible (base de Mii pleine ?).</string>
+    <string name="nextendo_signin_notif_title">Connexion à Nextendo</string>
+    <string name="nextendo_signin_notif_text">Termine la connexion dans ton navigateur</string>
+    <string name="nextendo_signin_ok">Connecté à Nextendo : %1$s</string>
+    <string name="nextendo_signin_fail">Connexion échouée : %1$s</string>
+    <string name="nextendo_loading">Chargement…</string>
+    <string name="nextendo_refresh">Actualiser</string>
+    <string name="nextendo_close">Fermer</string>
+    <string name="nextendo_offline">Hors ligne</string>
+    <string name="nextendo_online">En ligne</string>
+    <string name="nextendo_playing">En jeu : %1$s</string>
+    <string name="nextendo_friends_load_failed">Impossible de charger les amis</string>
+    <string name="nextendo_check_linked">Vérifie que ton compte Nextendo est lié.</string>
+    <string name="nextendo_no_friends">Aucun ami pour le moment.</string>
+    <string name="nextendo_friends_online_count">%1$d en ligne sur %2$d</string>
+    <string name="nextendo_badge_update">MAJ %1$s</string>
+    <string name="nextendo_badge_online">%1$d en ligne</string>
+
 </resources>
