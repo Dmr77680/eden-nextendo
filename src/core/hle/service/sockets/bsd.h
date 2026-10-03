@@ -5,7 +5,11 @@
 
 #pragma once
 
+// DEN_SOCKETS_APPLIED
+#include <array>
+#include <map>
 #include <memory>
+#include <optional>
 #include <span>
 #include <vector>
 #include <variant>
@@ -47,6 +51,12 @@ private:
         std::shared_ptr<Network::SocketBase> socket;
         s32 flags = 0;
         bool is_connection_based = false;
+        // [Nextendo] Cree par EventFd() : un socket UDP boucle sur lui-meme qui sert de
+        // "self-pipe" de reveil (gRPC de Splatoon 3 en depend).
+        bool is_eventfd = false;
+        // [Nextendo] Options socket "acceptees mais simulees" : le jeu les relit juste apres
+        // les avoir posees pour verifier qu'elles ont pris, on lui renvoie donc la valeur posee.
+        std::map<std::pair<u32, u32>, std::vector<u8>> feigned_opts;
     };
 
     struct PollWork {
