@@ -1890,6 +1890,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- DEN_I18N : textes Nextendo -->
     <string name="nextendo_friends">Friends</string>
     <string name="nextendo_import_mii">Import a Mii</string>
+    <string name="nextendo_country">Country flag (Mario Kart 8)</string>
+    <string name="nextendo_country_none">None</string>
+    <string name="nextendo_country_set">Flag set: %1$s. It shows in Mario Kart 8 Deluxe 4.0.0 online. Restart the game to apply it.</string>
+    <string name="nextendo_country_removed">Country flag removed. Restart the game to apply it.</string>
+    <string name="nextendo_country_failed">Could not set the country flag.</string>
     <string name="nextendo_sign_in">Sign in to Nextendo</string>
     <string name="nextendo_sign_out">Sign out (%1$s)</string>
     <string name="nextendo_signed_out">Signed out of Nextendo</string>

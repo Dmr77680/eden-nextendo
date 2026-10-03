@@ -441,6 +441,7 @@ class GamesFragment : Fragment() {
                     arrayOf(
                         getString(org.yuzu.yuzu_emu.R.string.nextendo_friends),
                         getString(org.yuzu.yuzu_emu.R.string.nextendo_import_mii),
+                        getString(org.yuzu.yuzu_emu.R.string.nextendo_country), // DEN_COUNTRY
                         org.yuzu.yuzu_emu.NativeLibrary.nextendoAccountName().let {
                             if (it.isEmpty()) getString(org.yuzu.yuzu_emu.R.string.nextendo_sign_in) else getString(org.yuzu.yuzu_emu.R.string.nextendo_sign_out, it)
                         }
@@ -450,6 +451,8 @@ class GamesFragment : Fragment() {
                         NextendoFriendsDialog.show(requireActivity())
                     } else if (which == 1) {
                         miiPicker.launch(arrayOf("*/*"))
+                    } else if (which == 2) {
+                        NextendoCountry.show(requireContext())
                     } else if (org.yuzu.yuzu_emu.NativeLibrary.nextendoAccountName().isEmpty()) {
                         org.yuzu.yuzu_emu.utils.NextendoSignInService.start(requireContext())
                     } else {

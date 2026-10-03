@@ -57,6 +57,7 @@ Lance le workflow GitHub Actions **Build Android** (onglet *Actions*). L'APK sor
 - **[Eden](https://git.eden-emu.dev/eden-emu/eden)** : l'émulateur de base (README d'origine : [README.eden.md](./README.eden.md)).
 - **Citron** : inspiration pour certaines parties du support Nextendo.
 - **yuzu** : le projet dont Eden est issu.
+- **[alyeri/nextendo-mk8d-country-flags](https://github.com/alyeri/nextendo-mk8d-country-flags)** (licence MIT) : les patchs de drapeaux de pays pour Mario Kart 8 Deluxe, dont DEN reprend le format et les valeurs (voir [docs/THIRD_PARTY_NOTICES.md](./docs/THIRD_PARTY_NOTICES.md)).
 
 Licence **GPL-3.0 ou ultérieure** (voir [LICENSE.txt](./LICENSE.txt)). Les mentions de copyright des fichiers d'origine sont conservées.
 
@@ -117,5 +118,6 @@ Run the **Build Android** GitHub Actions workflow (*Actions* tab). The APK comes
 - **[Eden](https://git.eden-emu.dev/eden-emu/eden)**: the base emulator (original README: [README.eden.md](./README.eden.md)).
 - **Citron**: inspiration for parts of the Nextendo support.
 - **yuzu**: the project Eden descends from.
+- **[alyeri/nextendo-mk8d-country-flags](https://github.com/alyeri/nextendo-mk8d-country-flags)** (MIT license): the country flag patches for Mario Kart 8 Deluxe, whose format and values DEN reuses (see [docs/THIRD_PARTY_NOTICES.md](./docs/THIRD_PARTY_NOTICES.md)).
 
 Licensed under **GPL-3.0 or later** (see [LICENSE.txt](./LICENSE.txt)). Original copyright notices are preserved.

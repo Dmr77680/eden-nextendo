@@ -1087,6 +1087,11 @@
     <!-- DEN_I18N : textes Nextendo -->
     <string name="nextendo_friends">Amis</string>
     <string name="nextendo_import_mii">Importer un Mii</string>
+    <string name="nextendo_country">Drapeau du pays (Mario Kart 8)</string>
+    <string name="nextendo_country_none">Aucun</string>
+    <string name="nextendo_country_set">Drapeau choisi : %1$s. Il s\'affiche en ligne dans Mario Kart 8 Deluxe 4.0.0. Relance le jeu pour l\'appliquer.</string>
+    <string name="nextendo_country_removed">Drapeau retiré. Relance le jeu pour l\'appliquer.</string>
+    <string name="nextendo_country_failed">Impossible de définir le drapeau.</string>
     <string name="nextendo_sign_in">Se connecter à Nextendo</string>
     <string name="nextendo_sign_out">Se déconnecter (%1$s)</string>
     <string name="nextendo_signed_out">Déconnecté de Nextendo</string>
