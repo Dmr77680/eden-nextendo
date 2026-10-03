@@ -334,7 +334,7 @@ private:
                  static_cast<u32>(res.GetModule()), res.GetDescription());
         if (tmp > 0) {
             LOG_INFO(Service_SSL, "[Nextendo] Read data: {}",
-                     NextendoDump(std::span<const u8>(data.data(), tmp), 160));
+                     NextendoDump(std::span<const u8>(data.data(), tmp), 600));
         }
         return res;
     }
