@@ -579,6 +579,56 @@ LoginResult SignInWithBrowser(const std::function<void(const std::string&)>& ope
     return out;
 }
 
+// DEN_NEX_TOKEN
+std::string FetchNexToken(const std::string& session_token) {
+    if (session_token.empty()) {
+        return {};
+    }
+    const auto result = Send("GET", "/api/nex-token", {}, session_token);
+    if (!result) {
+        LOG_ERROR(WebService, "FetchNexToken: no response");
+        return {};
+    }
+    LOG_INFO(WebService, "FetchNexToken: HTTP {}", result->status);
+    if (result->status != 200) {
+        LOG_ERROR(WebService, "FetchNexToken: rejected (body_len={})", result->body.size());
+        return {};
+    }
+    std::string tok;
+    const auto json = nlohmann::json::parse(result->body, nullptr, false);
+    if (json.is_object()) {
+        const auto read = [](const nlohmann::json& j, const char* key) -> std::string {
+            const auto it = j.find(key);
+            return (it != j.end() && it->is_string()) ? it->get<std::string>() : std::string{};
+        };
+        for (const char* key : {"nex_token", "nx2", "nnex", "token", "access_token"}) {
+            tok = read(json, key);
+            if (!tok.empty()) {
+                break;
+            }
+        }
+        if (tok.empty()) {
+            const auto data = json.find("data");
+            if (data != json.end() && data->is_object()) {
+                for (const char* key : {"nex_token", "nx2", "nnex", "token"}) {
+                    tok = read(*data, key);
+                    if (!tok.empty()) {
+                        break;
+                    }
+                }
+            }
+        }
+    } else {
+        tok = result->body;
+        while (!tok.empty() && std::isspace(static_cast<unsigned char>(tok.back()))) {
+            tok.pop_back();
+        }
+    }
+    LOG_INFO(WebService, "FetchNexToken: token_len={} dots={}", tok.size(),
+             std::count(tok.begin(), tok.end(), '.'));
+    return tok;
+}
+
 OnlineStatus GetOnlineStatus() {
     OnlineStatus out;
 

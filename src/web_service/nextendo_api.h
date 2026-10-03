@@ -50,6 +50,10 @@ std::string GetCaCertPathOverride();
 // handed the authorize URL to open. Blocks until the browser reaches the loopback callback.
 LoginResult SignInWithBrowser(const std::function<void(const std::string&)>& open_url);
 
+// DEN_NEX_TOKEN: exchanges the user session (OAuth access token) for the nx2 game credential via
+// GET /api/nex-token. Returns an empty string on failure.
+std::string FetchNexToken(const std::string& session_token);
+
 // Uses the stored account token. Answers only about the caller's own account.
 OnlineStatus GetOnlineStatus();
 

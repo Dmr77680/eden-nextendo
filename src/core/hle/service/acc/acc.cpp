@@ -24,6 +24,7 @@
 #include "common/fs/fs.h"
 #include "common/hex_util.h"
 #include "common/nextendo_account.h"
+#include "web_service/nextendo_api.h"
 #include "core/file_sys/patch_manager.h"
 #include <ranges>
 #include "common/stb.h"
@@ -230,7 +231,12 @@ std::string BuildIdToken(const std::string& installed_version) {
     // cryptographically bind this NEX login to the account (anti-impersonation).
     std::string nnex_claim;
     if (Common::NextendoAccount::IsLinked()) {
-        const std::string tok = Common::NextendoAccount::GetToken();
+        // DEN_NEX_TOKEN: the stored token is the OAuth session; the game needs a fresh nx2.
+        const std::string session = Common::NextendoAccount::GetToken();
+        std::string tok = WebService::NextendoApi::FetchNexToken(session);
+        if (tok.empty()) {
+            tok = session;
+        }
         if (!tok.empty()) {
             nnex_claim = fmt::format(R"("nnex":"{}",)", tok);
         }
