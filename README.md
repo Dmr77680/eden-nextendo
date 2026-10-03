@@ -1,32 +1,87 @@
-<p align="center"><img src="./dist/den-logo.png" alt="DEN" width="160"></p>
+# DEN — Eden + Nextendo
 
-# DEN — Eden Nextendo
+**🇫🇷 Français** · [🇬🇧 English below](#-english)
 
-Un fork de l'émulateur Switch **[Eden](https://git.eden-emu.dev/eden-emu/eden)** pour **Android**, adapté pour se connecter à **Nextendo**, un réseau de jeu en ligne alternatif pour la Switch.
+DEN est un fork de l'émulateur Switch **[Eden](https://git.eden-emu.dev/eden-emu/eden)** pour **Android**, adapté pour se connecter à **Nextendo**, un réseau de jeu en ligne alternatif pour la Switch.
 
-> Projet personnel et non officiel. Il n'est affilié ni à l'équipe d'Eden, ni à Citron, ni à Nintendo.
+> Projet personnel et non officiel. Il n'est affilié ni à l'équipe d'Eden, ni à Citron, ni à Nextendo, ni à Nintendo.
 
-## Ce que ce fork ajoute
+## ✅ Ce qui fonctionne
 
-- **Connexion à Nextendo** : résolution DNS, détection du NAT et échange des adresses des joueurs adaptés au réseau Nextendo.
-- **Jeu en ligne** : Mario Kart 8 Deluxe (salons, courses) et Super Mario Maker 2 fonctionnent en ligne. Mario Party Superstars a été testé brièvement.
-- **Liste d'amis et présence** : la liste d'amis Nextendo est visible dans les jeux et ta présence est publiée aux autres joueurs.
-- **Compteur de joueurs en ligne** : affiché en vert sur chaque jeu dans la liste de jeux.
+- **Jeu en ligne sur Nextendo** : Mario Kart 8 Deluxe (salons et courses, stable dans nos tests), Super Mario Maker 2. Mario Party Superstars a été testé brièvement.
+- **Amis Nextendo** : ta liste d'amis est visible dans les jeux. Un écran « Amis Nextendo » (bouton dans l'en-tête de la liste des jeux) montre qui est en ligne ou hors ligne.
+- **Compteur de joueurs en ligne** affiché en vert sur chaque jeu compatible.
+- **Badge orange « MAJ x.y.z »** quand ta version du jeu n'est pas celle que Nextendo exige (17 jeux de la liste Nextendo).
+- **Import de Mii** (menu de la liste des jeux) : fichiers `.charinfo` / `.mii` et `MiiDatabase.dat` de Ryujinx.
+- **Connexion à ton compte via le navigateur** (menu « Se connecter à Nextendo ») : récupère ton identité, tes amis et ta présence.
 
-Testé sur Retroid Pocket 5. Le jeu en ligne n'est pas stable à 100 % : des déconnexions peuvent arriver.
+## ⚠️ Ce qui ne fonctionne pas (encore)
 
-## Utilisation
+- **Jouer en ligne après « Se connecter à Nextendo »** : le serveur de jeu refuse pour l'instant le jeton de ce nouveau mode de connexion (erreur **2306-0802**). Pour jouer en ligne, tu dois placer ton fichier `nextendo_account.txt` (obtenu avec un autre client Nextendo, par exemple Citron) dans le dossier `Android/data/dev.eden.eden_emulator.relWithDebInfo/files/config/`. Nous avons demandé à Nextendo de corriger ça.
+- **Splatoon 3** : bloqué au démarrage dans les versions précédentes. Un correctif est inclus dans cette version mais **n'est pas encore confirmé** ; l'en ligne n'est pas testé.
+- **Stabilité** : testé uniquement sur **Retroid Pocket 5**. Un appareil en surcadençage ou qui chauffe peut avoir des chutes de FPS et des déconnexions.
+- Le nom du jeu auquel joue un ami peut s'afficher sous forme de code pour certains titres.
 
-Ce dépôt ne contient et ne distribue aucun jeu ni firmware. Tu dois fournir toi-même tes jeux, tes clés et ton firmware, obtenus légalement depuis ta propre console.
+## Installation
 
-Le build Android se fait avec le workflow GitHub Actions **Build Android** (onglet *Actions*).
+1. Télécharge **`DEN.apk`** dans l'onglet [Releases](../../releases) et installe-le (autorise les sources inconnues).
+2. Ajoute **tes propres** jeux, clés et firmware, obtenus légalement depuis ta console. Ce dépôt ne distribue ni jeux, ni clés, ni firmware.
+3. Place ton `nextendo_account.txt` dans `files/config/` (voir ci-dessus) et lance un jeu compatible.
 
-## Crédits
+> 🔒 **Ne partage jamais ton `nextendo_account.txt`** : il contient un jeton qui donne accès à ton compte, comme un mot de passe.
 
-- **[Eden](https://git.eden-emu.dev/eden-emu/eden)** : l'émulateur sur lequel ce projet est basé. Le README d'origine est conservé dans [README.eden.md](./README.eden.md).
-- **Citron** : certaines parties de la prise en charge de Nextendo (service d'amis, API) s'en inspirent.
+## Compiler soi-même
+
+Lance le workflow GitHub Actions **Build Android** (onglet *Actions*). L'APK sort dans l'artefact **DEN**.
+
+## Crédits et licence
+
+- **[Eden](https://git.eden-emu.dev/eden-emu/eden)** : l'émulateur de base (README d'origine : [README.eden.md](./README.eden.md)).
+- **Citron** : inspiration pour certaines parties du support Nextendo.
 - **yuzu** : le projet dont Eden est issu.
 
-## Licence
+Licence **GPL-3.0 ou ultérieure** (voir [LICENSE.txt](./LICENSE.txt)). Les mentions de copyright des fichiers d'origine sont conservées.
 
-Comme Eden, ce projet est sous licence **GPL-3.0 ou ultérieure**. Voir [LICENSE.txt](./LICENSE.txt). Les mentions de copyright des fichiers d'origine sont conservées.
+---
+
+# 🇬🇧 English
+
+DEN is a fork of the **[Eden](https://git.eden-emu.dev/eden-emu/eden)** Switch emulator for **Android**, adapted to connect to **Nextendo**, an alternative online gaming network for the Switch.
+
+> Personal, unofficial project. Not affiliated with the Eden team, Citron, Nextendo or Nintendo.
+
+## ✅ What works
+
+- **Online play on Nextendo**: Mario Kart 8 Deluxe (lobbies and races, stable in our tests), Super Mario Maker 2. Mario Party Superstars was briefly tested.
+- **Nextendo friends**: your friend list is visible in games. A "Nextendo Friends" screen (button in the games list header) shows who is online or offline.
+- **Online player counter** shown in green on each compatible game.
+- **Orange "UPDATE x.y.z" badge** when your game version is not the one Nextendo requires (17 games on Nextendo's list).
+- **Mii import** (games list menu): `.charinfo` / `.mii` files and Ryujinx `MiiDatabase.dat`.
+- **Sign in through your browser** ("Sign in to Nextendo" menu): fetches your identity, friends and presence.
+
+## ⚠️ What doesn't work (yet)
+
+- **Playing online after "Sign in to Nextendo"**: the game server currently rejects the token from this new sign-in method (error **2306-0802**). To play online, put your `nextendo_account.txt` (obtained with another Nextendo client, e.g. Citron) in `Android/data/dev.eden.eden_emulator.relWithDebInfo/files/config/`. We have asked Nextendo to fix this.
+- **Splatoon 3**: stuck at startup in earlier versions. A fix is included in this release but **not yet confirmed**; online play is untested.
+- **Stability**: tested only on a **Retroid Pocket 5**. An overclocked or overheating device may see FPS drops and disconnections.
+- The name of the game a friend is playing may show as a code for some titles.
+
+## Install
+
+1. Download **`DEN.apk`** from the [Releases](../../releases) tab and install it (allow unknown sources).
+2. Add **your own** games, keys and firmware, legally dumped from your console. This repository does not distribute games, keys or firmware.
+3. Put your `nextendo_account.txt` in `files/config/` (see above) and launch a compatible game.
+
+> 🔒 **Never share your `nextendo_account.txt`**: it contains a token that gives access to your account, like a password.
+
+## Build it yourself
+
+Run the **Build Android** GitHub Actions workflow (*Actions* tab). The APK comes out in the **DEN** artifact.
+
+## Credits and license
+
+- **[Eden](https://git.eden-emu.dev/eden-emu/eden)**: the base emulator (original README: [README.eden.md](./README.eden.md)).
+- **Citron**: inspiration for parts of the Nextendo support.
+- **yuzu**: the project Eden descends from.
+
+Licensed under **GPL-3.0 or later** (see [LICENSE.txt](./LICENSE.txt)). Original copyright notices are preserved.
