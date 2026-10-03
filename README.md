@@ -6,6 +6,12 @@ DEN est un fork de l'émulateur Switch **[Eden](https://git.eden-emu.dev/eden-em
 
 > Projet personnel et non officiel. Il n'est affilié ni à l'équipe d'Eden, ni à Citron, ni à Nextendo, ni à Nintendo.
 
+<table>
+<tr><td align="center" width="50%"><img src="docs/screenshots/games.jpg" alt="Liste des jeux : joueurs en ligne et badge de mise à jour" width="100%"><br><sub>Liste des jeux : joueurs en ligne et badge de mise à jour</sub></td><td align="center" width="50%"><img src="docs/screenshots/menu.jpg" alt="Menu Nextendo : amis, import de Mii, compte" width="100%"><br><sub>Menu Nextendo : amis, import de Mii, compte</sub></td></tr>
+<tr><td align="center" width="50%"><img src="docs/screenshots/online.jpg" alt="Mario Kart 8 Deluxe : mode en ligne" width="100%"><br><sub>Mario Kart 8 Deluxe : mode en ligne</sub></td><td align="center" width="50%"><img src="docs/screenshots/lobby.jpg" alt="Salon en ligne avec d'autres joueurs" width="100%"><br><sub>Salon en ligne avec d'autres joueurs</sub></td></tr>
+<tr><td align="center" width="50%"><img src="docs/screenshots/mii.jpg" alt="Mii importé dans le jeu" width="100%"><br><sub>Mii importé dans le jeu</sub></td><td align="center" width="50%"><img src="docs/screenshots/race.jpg" alt="Course en ligne à 60 FPS" width="100%"><br><sub>Course en ligne à 60 FPS</sub></td></tr>
+</table>
+
 ## ✅ Ce qui fonctionne
 
 - **Jeu en ligne sur Nextendo** : Mario Kart 8 Deluxe (salons et courses, stable dans nos tests), Super Mario Maker 2. Mario Party Superstars a été testé brièvement.
@@ -51,6 +57,12 @@ Licence **GPL-3.0 ou ultérieure** (voir [LICENSE.txt](./LICENSE.txt)). Les ment
 DEN is a fork of the **[Eden](https://git.eden-emu.dev/eden-emu/eden)** Switch emulator for **Android**, adapted to connect to **Nextendo**, an alternative online gaming network for the Switch.
 
 > Personal, unofficial project. Not affiliated with the Eden team, Citron, Nextendo or Nintendo.
+
+<table>
+<tr><td align="center" width="50%"><img src="docs/screenshots/games.jpg" alt="Games list: online players and update badge" width="100%"><br><sub>Games list: online players and update badge</sub></td><td align="center" width="50%"><img src="docs/screenshots/menu.jpg" alt="Nextendo menu: friends, Mii import, account" width="100%"><br><sub>Nextendo menu: friends, Mii import, account</sub></td></tr>
+<tr><td align="center" width="50%"><img src="docs/screenshots/online.jpg" alt="Mario Kart 8 Deluxe: online mode" width="100%"><br><sub>Mario Kart 8 Deluxe: online mode</sub></td><td align="center" width="50%"><img src="docs/screenshots/lobby.jpg" alt="Online lobby with other players" width="100%"><br><sub>Online lobby with other players</sub></td></tr>
+<tr><td align="center" width="50%"><img src="docs/screenshots/mii.jpg" alt="Imported Mii in game" width="100%"><br><sub>Imported Mii in game</sub></td><td align="center" width="50%"><img src="docs/screenshots/race.jpg" alt="Online race at 60 FPS" width="100%"><br><sub>Online race at 60 FPS</sub></td></tr>
+</table>
 
 ## ✅ What works
 
