@@ -80,7 +80,7 @@ class GamesFragment : Fragment() {
     private fun fetchNextendoVersions(): Map<String, String>? {
         try {
             val conn = java.net.URL(
-                "https://raw.githubusercontent.com/Dmr77680/eden-nextendo/main/docs/nextendo_versions.json"
+                "https://raw.githubusercontent.com/Dmr77680/DEN/main/docs/nextendo_versions.json"
             ).openConnection() as java.net.HttpURLConnection
             conn.connectTimeout = 5000
             conn.readTimeout = 5000
