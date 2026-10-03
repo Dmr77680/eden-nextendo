@@ -74,10 +74,53 @@ class GamesFragment : Fragment() {
     // [Nextendo] players online per title, refreshed while the games list is visible
     private val onlineCountsHandler = Handler(Looper.getMainLooper())
     @Volatile private var onlineCountsPolling = false
+    // DEN_VERSIONS_REMOTE
+    @Volatile private var lastVersionsFetch = 0L
+
+    private fun fetchNextendoVersions(): Map<String, String>? {
+        try {
+            val conn = java.net.URL(
+                "https://raw.githubusercontent.com/Dmr77680/eden-nextendo/main/docs/nextendo_versions.json"
+            ).openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 5000
+            conn.readTimeout = 5000
+            try {
+                if (conn.responseCode != 200) return null
+                val body = conn.inputStream.bufferedReader().use { it.readText() }
+                val obj = JSONObject(body)
+                val out = HashMap<String, String>()
+                val keys = obj.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    if (key.startsWith("_")) continue
+                    val value = obj.optString(key)
+                    if (value.isNotEmpty()) out[key.lowercase()] = value
+                }
+                return out
+            } finally {
+                conn.disconnect()
+            }
+        } catch (_: Exception) {
+            return null
+        }
+    }
+
     private val onlineCountsPoll = object : Runnable {
         override fun run() {
             Thread {
                 try {
+                    val now = System.currentTimeMillis()
+                    if (now - lastVersionsFetch > 600_000L) {
+                        lastVersionsFetch = now
+                        val versions = fetchNextendoVersions()
+                        if (!versions.isNullOrEmpty()) {
+                            onlineCountsHandler.post {
+                                if (_binding != null && ::gameAdapter.isInitialized) {
+                                    gameAdapter.setNextendoVersions(versions)
+                                }
+                            }
+                        }
+                    }
                     val json = NativeLibrary.nextendoOnlineCountsJson()
                     val obj = JSONObject(json)
                     val counts = HashMap<String, Int>()

@@ -62,6 +62,16 @@ class GameAdapter(private val activity: AppCompatActivity) :
         }
     }
 
+    // DEN_VERSIONS_REMOTE : versions exigees, telechargees depuis docs/nextendo_versions.json
+    @Volatile private var remoteVersions: Map<String, String> = emptyMap()
+
+    fun setNextendoVersions(versions: Map<String, String>) {
+        if (versions != remoteVersions) {
+            remoteVersions = versions
+            notifyDataSetChanged()
+        }
+    }
+
     fun setViewType(type: Int) {
         viewType = type
         notifyDataSetChanged()
@@ -202,7 +212,7 @@ class GameAdapter(private val activity: AppCompatActivity) :
             val base = model.title.replace("[\\t\\n\\r]+".toRegex(), " ")
             val id = (model.programId.toLongOrNull() ?: 0L).toString(16).padStart(16, '0')
             val count = onlineCounts[id] ?: 0
-            val wanted = nextendoVersions[id]
+            val wanted = remoteVersions[id] ?: nextendoVersions[id]
             val needsUpdate = wanted != null && model.version.isNotEmpty() && model.version != wanted
 
             if (count <= 0 && !needsUpdate) {
