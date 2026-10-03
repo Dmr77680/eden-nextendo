@@ -47,7 +47,6 @@ SPDX-License-Identifier: GPL-3.0-or-later
         android:banner="@drawable/tv_banner"
         android:fullBackupContent="@xml/data_extraction_rules"
         android:dataExtractionRules="@xml/data_extraction_rules_api_31"
-        android:localeConfig="@xml/locales_config"
         tools:targetApi="33"
         android:enableOnBackInvokedCallback="true">
 
