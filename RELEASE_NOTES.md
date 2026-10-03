@@ -12,7 +12,7 @@ Première version publique de DEN : Eden pour Android + support de Nextendo. **P
 
 ### ⚠️ Ce qui ne marche pas encore
 - **Jouer en ligne après « Se connecter à Nextendo »** : erreur 2306-0802 (le serveur de jeu refuse ce nouveau jeton, demande faite à Nextendo). Solution actuelle : placer ton `nextendo_account.txt` dans `Android/data/dev.eden.eden_emulator.relWithDebInfo/files/config/`.
-- **Splatoon 3** : correctif inclus mais non confirmé, en ligne non testé.
+- **Splatoon 3** : se lance mais problèmes graphiques (en cours de correction)
 - Appareils autres que Retroid Pocket 5 non testés ; surcadençage = risque de déconnexions.
 
 ### Installation
@@ -40,7 +40,7 @@ First public release of DEN: Eden for Android + Nextendo support. **Pre-release:
 
 ### ⚠️ What doesn't work yet
 - **Playing online after "Sign in to Nextendo"**: error 2306-0802 (the game server rejects this new token; request sent to Nextendo). Current workaround: put your `nextendo_account.txt` in `Android/data/dev.eden.eden_emulator.relWithDebInfo/files/config/`.
-- **Splatoon 3**: fix included but unconfirmed, online untested.
+- **Splatoon 3**: launches but has graphical issues (being worked on)
 - Devices other than Retroid Pocket 5 untested; overclocking may cause disconnections.
 
 ### Install

@@ -24,7 +24,7 @@ DEN est un fork de l'émulateur Switch **[Eden](https://git.eden-emu.dev/eden-em
 ## ⚠️ Ce qui ne fonctionne pas (encore)
 
 - **Jouer en ligne après « Se connecter à Nextendo »** : le serveur de jeu refuse pour l'instant le jeton de ce nouveau mode de connexion (erreur **2306-0802**). Pour jouer en ligne, tu dois placer ton fichier `nextendo_account.txt` (obtenu avec un autre client Nextendo, par exemple Citron) dans le dossier `Android/data/dev.eden.eden_emulator.relWithDebInfo/files/config/`. Nous avons demandé à Nextendo de corriger ça.
-- **Splatoon 3** : bloqué au démarrage dans les versions précédentes. Un correctif est inclus dans cette version mais **n'est pas encore confirmé** ; l'en ligne n'est pas testé.
+- **Splatoon 3** : le jeu se lance mais a des problèmes graphiques (en cours de correction).
 - **Stabilité** : testé uniquement sur **Retroid Pocket 5**. Un appareil en surcadençage ou qui chauffe peut avoir des chutes de FPS et des déconnexions.
 - Le nom du jeu auquel joue un ami peut s'afficher sous forme de code pour certains titres.
 
@@ -76,7 +76,7 @@ DEN is a fork of the **[Eden](https://git.eden-emu.dev/eden-emu/eden)** Switch e
 ## ⚠️ What doesn't work (yet)
 
 - **Playing online after "Sign in to Nextendo"**: the game server currently rejects the token from this new sign-in method (error **2306-0802**). To play online, put your `nextendo_account.txt` (obtained with another Nextendo client, e.g. Citron) in `Android/data/dev.eden.eden_emulator.relWithDebInfo/files/config/`. We have asked Nextendo to fix this.
-- **Splatoon 3**: stuck at startup in earlier versions. A fix is included in this release but **not yet confirmed**; online play is untested.
+- **Splatoon 3**: the game launches but has graphical issues (being worked on).
 - **Stability**: tested only on a **Retroid Pocket 5**. An overclocked or overheating device may see FPS drops and disconnections.
 - The name of the game a friend is playing may show as a code for some titles.
 
