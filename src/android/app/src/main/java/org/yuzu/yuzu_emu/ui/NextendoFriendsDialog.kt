@@ -93,6 +93,7 @@ object NextendoFriendsDialog {
     }
 
     private class Friend(
+        val pid: Long,
         val name: String,
         val status: Int,
         val appId: String,
@@ -117,6 +118,8 @@ object NextendoFriendsDialog {
                 setPadding(0, dp(16), 0, dp(16))
             })
         }
+        // DEN_FRIEND_ADD
+        var doRefresh: () -> Unit = {}
         message(activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_loading))
 
         val dialog = MaterialAlertDialogBuilder(activity)
@@ -124,7 +127,75 @@ object NextendoFriendsDialog {
             .setView(scroll)
             .setPositiveButton(activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_refresh), null)
             .setNegativeButton(activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_close), null)
+            .setNeutralButton(activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_add_friend), null)
             .create()
+
+        fun runAction(action: Int, arg: String, okMsg: Int) {
+            Thread {
+                val err = try { NativeLibrary.nextendoFriendAction(action, arg) } catch (_: Throwable) { "?" }
+                activity.runOnUiThread {
+                    android.widget.Toast.makeText(
+                        activity,
+                        if (err.isEmpty()) activity.getString(okMsg) else err,
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                    doRefresh()
+                }
+            }.start()
+        }
+
+        fun askFriendCode() {
+            val input = android.widget.EditText(activity).apply {
+                hint = activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_friend_code_hint)
+                setSingleLine()
+            }
+            val box = LinearLayout(activity).apply {
+                setPadding(dp(24), dp(8), dp(24), 0)
+                addView(input, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            }
+            MaterialAlertDialogBuilder(activity)
+                .setTitle(activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_add_friend))
+                .setMessage(activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_add_friend_help))
+                .setView(box)
+                .setPositiveButton(activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_send_request)) { _, _ ->
+                    val code = input.text.toString().trim()
+                    if (code.isNotEmpty()) runAction(0, code, org.yuzu.yuzu_emu.R.string.nextendo_request_sent)
+                }
+                .setNegativeButton(activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_close), null)
+                .show()
+        }
+
+        fun confirmRemove(f: Friend) {
+            MaterialAlertDialogBuilder(activity)
+                .setTitle(f.name)
+                .setMessage(activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_remove_confirm))
+                .setPositiveButton(activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_remove)) { _, _ ->
+                    runAction(3, f.pid.toString(), org.yuzu.yuzu_emu.R.string.nextendo_friend_removed)
+                }
+                .setNegativeButton(activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_close), null)
+                .show()
+        }
+
+        fun requestRow(f: Friend): View {
+            val row = LinearLayout(activity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, dp(6), 0, dp(6))
+            }
+            row.addView(TextView(activity).apply {
+                text = f.name
+                textSize = 16f
+            }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            row.addView(android.widget.Button(activity).apply {
+                text = activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_accept)
+                setOnClickListener { runAction(1, f.pid.toString(), org.yuzu.yuzu_emu.R.string.nextendo_friend_added) }
+            })
+            row.addView(android.widget.Button(activity).apply {
+                text = activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_decline)
+                setOnClickListener { runAction(2, f.pid.toString(), org.yuzu.yuzu_emu.R.string.nextendo_request_declined) }
+            })
+            return row
+        }
 
         fun row(f: Friend): View {
             val row = LinearLayout(activity).apply {
@@ -179,6 +250,7 @@ object NextendoFriendsDialog {
                 setTextColor(if (f.status > 0) GREEN else GRAY)
             })
             row.addView(col, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            row.setOnLongClickListener { confirmRemove(f); true }
             return row
         }
 
@@ -189,6 +261,7 @@ object NextendoFriendsDialog {
                 var ok = false
                 var error = ""
                 val friends = mutableListOf<Friend>()
+                val requests = mutableListOf<Friend>()
                 try {
                     val root = JSONObject(NativeLibrary.nextendoFriendsListJson())
                     ok = root.optBoolean("ok")
@@ -198,11 +271,18 @@ object NextendoFriendsDialog {
                         val e = arr.getJSONObject(i)
                         friends.add(
                             Friend(
-                                e.optString("name"), e.optInt("status"),
+                                e.optLong("pid"), e.optString("name"), e.optInt("status"),
                                 e.optString("app_id"), e.optString("app_name"),
                                 e.optString("image")
                             )
                         )
+                    }
+                    val reqs = root.optJSONArray("requests")
+                    if (reqs != null) {
+                        for (i in 0 until reqs.length()) {
+                            val e = reqs.getJSONObject(i)
+                            requests.add(Friend(e.optLong("pid"), e.optString("name"), 0, "", "", e.optString("image")))
+                        }
                     }
                 } catch (_: Exception) {
                 }
@@ -215,9 +295,18 @@ object NextendoFriendsDialog {
                                 (if (error.isNotEmpty()) " ($error)" else "") +
                                 ". " + activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_check_linked)
                         )
-                        friends.isEmpty() -> message(activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_no_friends))
+                        friends.isEmpty() && requests.isEmpty() -> message(activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_no_friends))
                         else -> {
                             list.removeAllViews()
+                            if (requests.isNotEmpty()) {
+                                list.addView(TextView(activity).apply {
+                                    text = activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_requests_title, requests.size)
+                                    textSize = 13f
+                                    setTextColor(GREEN)
+                                    setPadding(0, 0, 0, dp(4))
+                                })
+                                requests.forEach { list.addView(requestRow(it)) }
+                            }
                             val online = friends.count { it.status > 0 }
                             list.addView(TextView(activity).apply {
                                 text = activity.getString(org.yuzu.yuzu_emu.R.string.nextendo_friends_online_count, online, friends.size)
@@ -233,7 +322,9 @@ object NextendoFriendsDialog {
         }
 
         dialog.setOnShowListener {
+            doRefresh = { refresh() }
             dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener { refresh() }
+            dialog.getButton(android.app.AlertDialog.BUTTON_NEUTRAL).setOnClickListener { askFriendCode() }
             refresh()
         }
         dialog.show()

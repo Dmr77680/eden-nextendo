@@ -1920,4 +1920,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="nextendo_badge_update">UPDATE %1$s</string>
     <string name="nextendo_badge_online">%1$d online</string>
 
+    <string name="nextendo_add_friend">Add a friend</string>
+    <string name="nextendo_add_friend_help">Enter your friend\'s Nextendo friend code. You can find yours on nextendo.network.</string>
+    <string name="nextendo_friend_code_hint">Friend code</string>
+    <string name="nextendo_send_request">Send request</string>
+    <string name="nextendo_request_sent">Friend request sent</string>
+    <string name="nextendo_requests_title">%1$d friend request(s)</string>
+    <string name="nextendo_accept">Accept</string>
+    <string name="nextendo_decline">Decline</string>
+    <string name="nextendo_friend_added">Friend added</string>
+    <string name="nextendo_request_declined">Request declined</string>
+    <string name="nextendo_remove">Remove</string>
+    <string name="nextendo_remove_confirm">Remove this friend?</string>
+    <string name="nextendo_friend_removed">Friend removed</string>
 </resources>

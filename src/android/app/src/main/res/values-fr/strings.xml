@@ -1117,4 +1117,17 @@
     <string name="nextendo_badge_update">MAJ %1$s</string>
     <string name="nextendo_badge_online">%1$d en ligne</string>
 
+    <string name="nextendo_add_friend">Ajouter un ami</string>
+    <string name="nextendo_add_friend_help">Entrez le code ami Nextendo de votre ami. Le vôtre est visible sur nextendo.network.</string>
+    <string name="nextendo_friend_code_hint">Code ami</string>
+    <string name="nextendo_send_request">Envoyer la demande</string>
+    <string name="nextendo_request_sent">Demande d\'ami envoyée</string>
+    <string name="nextendo_requests_title">%1$d demande(s) d\'ami</string>
+    <string name="nextendo_accept">Accepter</string>
+    <string name="nextendo_decline">Refuser</string>
+    <string name="nextendo_friend_added">Ami ajouté</string>
+    <string name="nextendo_request_declined">Demande refusée</string>
+    <string name="nextendo_remove">Supprimer</string>
+    <string name="nextendo_remove_confirm">Supprimer cet ami ?</string>
+    <string name="nextendo_friend_removed">Ami supprimé</string>
 </resources>

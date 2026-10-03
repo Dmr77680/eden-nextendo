@@ -709,6 +709,9 @@ object NativeLibrary {
 
     external fun nextendoFriendsListJson(): String
 
+    // DEN_FRIEND_ADD: 0=add(code) 1=accept 2=decline 3=remove (pid); "" on success, else error
+    external fun nextendoFriendAction(action: Int, arg: String): String
+
     external fun nextendoSignIn()
 
     external fun nextendoSignOut()

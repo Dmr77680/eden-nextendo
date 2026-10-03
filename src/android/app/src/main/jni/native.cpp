@@ -1544,9 +1544,46 @@ jstring Java_org_yuzu_yuzu_1emu_NativeLibrary_nextendoFriendsListJson(JNIEnv* en
                 esc(f.app_id) + "\",\"app_name\":\"" + esc(f.app_name) + "\",\"image\":\"" +
                 esc(f.image_base64) + "\"}";
     }
+    json += "],\"requests\":[";
+    for (std::size_t i = 0; i < list.requests.size(); ++i) {
+        const auto& f = list.requests[i];
+        json += i == 0 ? "" : ",";
+        json += "{\"pid\":" + std::to_string(f.pid) + ",\"name\":\"" + esc(f.name) +
+                "\",\"image\":\"" + esc(f.image_base64) + "\"}";
+    }
     json += "]}";
 #endif
     return Common::Android::ToJString(env, json);
+}
+
+// DEN_FRIEND_ADD : action 0 = ajouter (arg = code ami), 1 = accepter, 2 = refuser,
+// 3 = supprimer (arg = pid). Retourne "" si OK, sinon un message d'erreur.
+jstring Java_org_yuzu_yuzu_1emu_NativeLibrary_nextendoFriendAction(JNIEnv* env, jclass clazz,
+                                                                   jint action, jstring jarg) {
+    std::string result = "Unavailable.";
+#ifdef ENABLE_WEB_SERVICE
+    const std::string arg = Common::Android::GetJString(env, jarg);
+    if (action == 0) {
+        result = WebService::NextendoApi::AddFriendByCode(arg);
+    } else {
+        u64 pid = 0;
+        try {
+            pid = std::stoull(arg);
+        } catch (...) {
+            pid = 0;
+        }
+        if (pid == 0) {
+            result = "Invalid player.";
+        } else if (action == 1) {
+            result = WebService::NextendoApi::AcceptFriend(pid);
+        } else if (action == 2) {
+            result = WebService::NextendoApi::DeclineFriend(pid);
+        } else {
+            result = WebService::NextendoApi::RemoveFriend(pid);
+        }
+    }
+#endif
+    return Common::Android::ToJString(env, result);
 }
 
 // 0 = ok, 1 = taille de fichier inconnue, 2 = Mii invalide, 3 = ajout refuse (base pleine ?)
