@@ -16,6 +16,8 @@ Première version publique de DEN : Eden pour Android + support de Nextendo. **P
 - Appareils autres que Retroid Pocket 5 non testés ; surcadençage = risque de déconnexions.
 
 ### Installation
+**Configuration requise : Android 13 minimum, appareil 64 bits (arm64).**
+
 1. Télécharge `DEN.apk` ci-dessous et installe-le.
 2. Ajoute tes propres jeux, clés et firmware (non fournis).
 3. Place ton `nextendo_account.txt` dans `files/config/`.
@@ -42,6 +44,8 @@ First public release of DEN: Eden for Android + Nextendo support. **Pre-release:
 - Devices other than Retroid Pocket 5 untested; overclocking may cause disconnections.
 
 ### Install
+**Requirements: Android 13 or newer, 64-bit (arm64) device.**
+
 1. Download `DEN.apk` below and install it.
 2. Add your own games, keys and firmware (not provided).
 3. Put your `nextendo_account.txt` in `files/config/`.

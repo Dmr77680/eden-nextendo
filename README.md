@@ -24,6 +24,8 @@ DEN est un fork de l'émulateur Switch **[Eden](https://git.eden-emu.dev/eden-em
 
 ## Installation
 
+**Configuration requise : Android 13 minimum, appareil 64 bits (arm64).** Testé sur Retroid Pocket 5.
+
 1. Télécharge **`DEN.apk`** dans l'onglet [Releases](../../releases) et installe-le (autorise les sources inconnues).
 2. Ajoute **tes propres** jeux, clés et firmware, obtenus légalement depuis ta console. Ce dépôt ne distribue ni jeux, ni clés, ni firmware.
 3. Place ton `nextendo_account.txt` dans `files/config/` (voir ci-dessus) et lance un jeu compatible.
@@ -67,6 +69,8 @@ DEN is a fork of the **[Eden](https://git.eden-emu.dev/eden-emu/eden)** Switch e
 - The name of the game a friend is playing may show as a code for some titles.
 
 ## Install
+
+**Requirements: Android 13 or newer, 64-bit (arm64) device.** Tested on a Retroid Pocket 5.
 
 1. Download **`DEN.apk`** from the [Releases](../../releases) tab and install it (allow unknown sources).
 2. Add **your own** games, keys and firmware, legally dumped from your console. This repository does not distribute games, keys or firmware.
