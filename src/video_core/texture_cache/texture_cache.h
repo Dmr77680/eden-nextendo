@@ -119,13 +119,14 @@ void TextureCache<P>::RunGarbageCollector() {
     bool aggressive_mode = false;
     u64 ticks_to_destroy = 0;
     size_t num_iterations = 0;
+    size_t den_deleted = 0; // DEN_GC_DIAG
     const auto Configure = [&](bool allow_aggressive) {
         high_priority_mode = total_used_memory >= expected_memory;
         aggressive_mode = allow_aggressive && total_used_memory >= critical_memory;
         ticks_to_destroy = aggressive_mode ? 10ULL : high_priority_mode ? 25ULL : 50ULL;
         num_iterations = aggressive_mode ? 40 : (high_priority_mode ? 20 : 10);
     };
-    const auto Cleanup = [this, &num_iterations, &high_priority_mode, &aggressive_mode](ImageId image_id) {
+    const auto Cleanup = [this, &num_iterations, &high_priority_mode, &aggressive_mode, &den_deleted](ImageId image_id) {
         if (num_iterations == 0) {
             return true;
         }
@@ -148,6 +149,7 @@ void TextureCache<P>::RunGarbageCollector() {
         if (True(image.flags & ImageFlagBits::Tracked)) {
             UntrackImage(image, image_id);
         }
+        ++den_deleted;
         UnregisterImage(image_id);
         DeleteImage(image_id, image.scale_tick > frame_tick + 5);
         if (aggressive_mode && total_used_memory < critical_memory) {
@@ -159,11 +161,28 @@ void TextureCache<P>::RunGarbageCollector() {
         }
         return false;
     };
+    const u64 den_mem_before = total_used_memory; // DEN_GC_DIAG
     Configure(false);
     lru_cache.ForEachItemBelow(frame_tick - ticks_to_destroy, Cleanup);
     if (total_used_memory >= critical_memory) {
         Configure(true);
         lru_cache.ForEachItemBelow(frame_tick - ticks_to_destroy, Cleanup);
+    }
+    {
+        // DEN_GC_DIAG: trace du ramasse-miettes de textures (limite a 1 ligne/seconde environ)
+        static u64 den_last_log = 0;
+        if (den_deleted > 0 && (den_last_log == 0 || frame_tick - den_last_log >= 60)) {
+            den_last_log = frame_tick;
+            LOG_INFO(HW_GPU,
+                     "[DEN GC] frame={} used={}MiB(avant {}MiB) min={}MiB expected={}MiB "
+                     "critical={}MiB supprimees={} high={} aggressive={}",
+                     frame_tick, static_cast<u64>(total_used_memory) / (1024 * 1024),
+                     den_mem_before / (1024 * 1024),
+                     static_cast<u64>(minimum_memory) / (1024 * 1024),
+                     static_cast<u64>(expected_memory) / (1024 * 1024),
+                     static_cast<u64>(critical_memory) / (1024 * 1024), den_deleted,
+                     high_priority_mode, aggressive_mode);
+        }
     }
 }
 
