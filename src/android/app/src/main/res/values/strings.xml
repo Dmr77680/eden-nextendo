@@ -1888,7 +1888,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="percent">%1$d%%</string>
 
     <!-- DEN_I18N : textes Nextendo -->
-    <string name="nextendo_friends">Nextendo friends</string>
+    <string name="nextendo_friends">Friends</string>
     <string name="nextendo_import_mii">Import a Mii</string>
     <string name="nextendo_sign_in">Sign in to Nextendo</string>
     <string name="nextendo_sign_out">Sign out (%1$s)</string>

@@ -1085,7 +1085,7 @@
     <string name="percent">%1$d%%</string>
 
     <!-- DEN_I18N : textes Nextendo -->
-    <string name="nextendo_friends">Amis Nextendo</string>
+    <string name="nextendo_friends">Amis</string>
     <string name="nextendo_import_mii">Importer un Mii</string>
     <string name="nextendo_sign_in">Se connecter à Nextendo</string>
     <string name="nextendo_sign_out">Se déconnecter (%1$s)</string>
