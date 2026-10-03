@@ -679,143 +679,116 @@ private:
     CertStore cert_store;
 };
 
+// DEN_SSL_SYSTEM_APPLIED
+// [Nextendo] ssl:s partage les commandes 0-9 avec ssl. Ici elles n'etaient que des stubs
+// vides (CreateContext ne renvoyait aucune interface, GetCertificates rien) : Splatoon 3
+// (pile gRPC / NPLN) ouvre son contexte SSL via ssl:s et restait donc bloque juste apres
+// la resolution DNS du serveur, sans jamais ouvrir de connexion. Port de l'implementation Citron.
 class ISslServiceForSystem final : public ServiceFramework<ISslServiceForSystem> {
-    public:
-        explicit ISslServiceForSystem(Core::System& system_) : ServiceFramework{system_, "ssl:s"} {
-            // clang-format off
-            static const FunctionInfo functions[] = {
-                {0, D<&ISslServiceForSystem::CreateContext>, "CreateContext"},
-                {1, D<&ISslServiceForSystem::GetContextCount>, "GetContextCount"},
-                {2, D<&ISslServiceForSystem::GetCertificates>, "GetCertificates"},
-                {3, D<&ISslServiceForSystem::GetCertificateBufSize>, "GetCertificateBufSize"},
-                {4, D<&ISslServiceForSystem::DebugIoctl>, "DebugIoctl"},
-                {5, D<&ISslServiceForSystem::SetInterfaceVersion>, "SetInterfaceVersion"},
-                {6, D<&ISslServiceForSystem::FlushSessionCache>, "FlushSessionCache"},
-                {7, D<&ISslServiceForSystem::SetDebugOption>, "SetDebugOption"},
-                {8, D<&ISslServiceForSystem::GetDebugOption>, "GetDebugOption"},
-                {9, D<&ISslServiceForSystem::ClearTls12FallbackFlag>, "ClearTls12FallbackFlag"},
-                {100, D<&ISslServiceForSystem::CreateContextForSystem>, "CreateContextForSystem"},
-                {101, D<&ISslServiceForSystem::SetThreadCoreMask>, "SetThreadCoreMask"},
-                {102, D<&ISslServiceForSystem::GetThreadCoreMask>, "GetThreadCoreMask"},
-                {103, D<&ISslServiceForSystem::VerifySignature>, "VerifySignature"}
-            };
-            // clang-format on
-
-            RegisterHandlers(functions);
+public:
+    explicit ISslServiceForSystem(Core::System& system_)
+        : ServiceFramework{system_, "ssl:s"}, cert_store{system} {
+        // clang-format off
+        static const FunctionInfo functions[] = {
+            {0, &ISslServiceForSystem::CreateContext, "CreateContext"},
+            {1, &ISslServiceForSystem::GetContextCount, "GetContextCount"},
+            {2, D<&ISslServiceForSystem::GetCertificates>, "GetCertificates"},
+            {3, D<&ISslServiceForSystem::GetCertificateBufSize>, "GetCertificateBufSize"},
+            {4, nullptr, "DebugIoctl"},
+            {5, &ISslServiceForSystem::SetInterfaceVersion, "SetInterfaceVersion"},
+            {6, &ISslServiceForSystem::FlushSessionCache, "FlushSessionCache"},
+            {7, &ISslServiceForSystem::StubSuccess, "SetDebugOption"},
+            {8, &ISslServiceForSystem::GetDebugOption, "GetDebugOption"},
+            {9, &ISslServiceForSystem::StubSuccess, "ClearTls12FallbackFlag"},
+            {100, &ISslServiceForSystem::CreateContext, "CreateContextForSystem"},
+            {101, &ISslServiceForSystem::StubSuccess, "SetThreadCoreMask"},
+            {102, &ISslServiceForSystem::GetThreadCoreMask, "GetThreadCoreMask"},
+            {103, &ISslServiceForSystem::StubSuccess, "VerifySignature"},
         };
+        // clang-format on
 
-        Result CreateContext() {
-            LOG_DEBUG(Service_SSL, "(STUBBED) called.");
+        RegisterHandlers(functions);
+    }
 
-            // TODO (jarrodnorwell)
-
-            return ResultSuccess;
+private:
+    void CreateContext(HLERequestContext& ctx) {
+        struct Parameters {
+            SslVersion ssl_version;
+            INSERT_PADDING_BYTES(0x4);
+            u64 pid_placeholder;
         };
+        static_assert(sizeof(Parameters) == 0x10, "Parameters is an invalid size");
 
-        Result GetContextCount() {
-            LOG_DEBUG(Service_SSL, "(STUBBED) called.");
+        IPC::RequestParser rp{ctx};
+        const auto parameters = rp.PopRaw<Parameters>();
 
-            // TODO (jarrodnorwell)
+        LOG_INFO(Service_SSL, "[Nextendo] ssl:s CreateContext, api_version={}",
+                 parameters.ssl_version.api_version);
 
-            return ResultSuccess;
-        };
+        IPC::ResponseBuilder rb{ctx, 2, 0, 1};
+        rb.Push(ResultSuccess);
+        rb.PushIpcInterface<ISslContext>(ctx, system, parameters.ssl_version);
+    }
 
-        Result GetCertificates() {
-            LOG_DEBUG(Service_SSL, "(STUBBED) called.");
+    void GetContextCount(HLERequestContext& ctx) {
+        IPC::ResponseBuilder rb{ctx, 3};
+        rb.Push(ResultSuccess);
+        rb.Push<u32>(0);
+    }
 
-            // TODO (jarrodnorwell)
+    Result GetCertificateBufSize(
+        Out<u32> out_size, InArray<CaCertificateId, BufferAttr_HipcMapAlias> certificate_ids) {
+        u32 num_entries;
+        Result res = cert_store.GetCertificateBufSize(out_size, &num_entries, certificate_ids);
+        LOG_INFO(Service_SSL, "[Nextendo] ssl:s GetCertificateBufSize -> size={} entries={}",
+                 *out_size, num_entries);
+        R_RETURN(res);
+    }
 
-            return ResultSuccess;
-        };
+    Result GetCertificates(Out<u32> out_num_entries, OutBuffer<BufferAttr_HipcMapAlias> out_buffer,
+                           InArray<CaCertificateId, BufferAttr_HipcMapAlias> certificate_ids) {
+        Result res = cert_store.GetCertificates(out_num_entries, out_buffer, certificate_ids);
+        LOG_INFO(Service_SSL, "[Nextendo] ssl:s GetCertificates -> entries={}", *out_num_entries);
+        R_RETURN(res);
+    }
 
-        Result GetCertificateBufSize() {
-            LOG_DEBUG(Service_SSL, "(STUBBED) called.");
+    void SetInterfaceVersion(HLERequestContext& ctx) {
+        IPC::RequestParser rp{ctx};
+        const u32 ssl_version = rp.Pop<u32>();
+        LOG_DEBUG(Service_SSL, "called, ssl_version={}", ssl_version);
 
-            // TODO (jarrodnorwell)
+        IPC::ResponseBuilder rb{ctx, 2};
+        rb.Push(ResultSuccess);
+    }
 
-            return ResultSuccess;
-        };
+    void FlushSessionCache(HLERequestContext& ctx) {
+        IPC::ResponseBuilder rb{ctx, 3};
+        rb.Push(ResultSuccess);
+        rb.Push<u32>(0);
+    }
 
-        Result DebugIoctl() {
-            LOG_DEBUG(Service_SSL, "(STUBBED) called.");
+    void GetDebugOption(HLERequestContext& ctx) {
+        std::array<u8, 1> debug_value{0};
+        ctx.WriteBuffer(debug_value);
 
-            // TODO (jarrodnorwell)
+        IPC::ResponseBuilder rb{ctx, 2};
+        rb.Push(ResultSuccess);
+    }
 
-            return ResultSuccess;
-        };
+    void GetThreadCoreMask(HLERequestContext& ctx) {
+        IPC::ResponseBuilder rb{ctx, 4};
+        rb.Push(ResultSuccess);
+        rb.Push<u64>(0);
+        rb.Push<u32>(0);
+    }
 
-        Result SetInterfaceVersion() {
-            LOG_DEBUG(Service_SSL, "(STUBBED) called.");
+    void StubSuccess(HLERequestContext& ctx) {
+        IPC::ResponseBuilder rb{ctx, 2};
+        rb.Push(ResultSuccess);
+    }
 
-            // TODO (jarrodnorwell)
-
-            return ResultSuccess;
-        };
-
-        Result FlushSessionCache() {
-            LOG_DEBUG(Service_SSL, "(STUBBED) called.");
-
-            // TODO (jarrodnorwell)
-
-            return ResultSuccess;
-        };
-
-        Result SetDebugOption() {
-            LOG_DEBUG(Service_SSL, "(STUBBED) called.");
-
-            // TODO (jarrodnorwell)
-
-            return ResultSuccess;
-        };
-
-        Result GetDebugOption() {
-            LOG_DEBUG(Service_SSL, "(STUBBED) called.");
-
-            // TODO (jarrodnorwell)
-
-            return ResultSuccess;
-        };
-
-        Result ClearTls12FallbackFlag() {
-            LOG_DEBUG(Service_SSL, "(STUBBED) called.");
-
-            // TODO (jarrodnorwell)
-
-            return ResultSuccess;
-        };
-
-        Result CreateContextForSystem() {
-            LOG_DEBUG(Service_SSL, "(STUBBED) called.");
-
-            // TODO (jarrodnorwell)
-
-            return ResultSuccess;
-        };
-
-        Result SetThreadCoreMask() {
-            LOG_DEBUG(Service_SSL, "(STUBBED) called.");
-
-            // TODO (jarrodnorwell)
-
-            return ResultSuccess;
-        };
-
-        Result GetThreadCoreMask() {
-            LOG_DEBUG(Service_SSL, "(STUBBED) called.");
-
-            // TODO (jarrodnorwell)
-
-            return ResultSuccess;
-        };
-
-        Result VerifySignature() {
-            LOG_DEBUG(Service_SSL, "(STUBBED) called.");
-
-            // TODO (jarrodnorwell)
-
-            return ResultSuccess;
-        };
-    };
+    CertStore cert_store;
+};
 
 void LoopProcess(Core::System& system) {
     auto server_manager = std::make_unique<ServerManager>(system);
