@@ -591,7 +591,9 @@ std::string FetchNexToken(const std::string& session_token) {
     }
     LOG_INFO(WebService, "FetchNexToken: HTTP {}", result->status);
     if (result->status != 200) {
-        LOG_ERROR(WebService, "FetchNexToken: rejected (body_len={})", result->body.size());
+        // DEN_NEX_DIAG: an error body carries no secret; keep it short.
+        LOG_ERROR(WebService, "FetchNexToken: rejected (body_len={}) body=\"{}\"",
+                  result->body.size(), result->body.substr(0, 200));
         return {};
     }
     std::string tok;
