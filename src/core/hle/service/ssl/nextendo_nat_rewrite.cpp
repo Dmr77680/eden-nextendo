@@ -120,7 +120,7 @@ std::vector<Match> FindMatches(std::span<const u8> body, std::array<u8, 4> ext_i
         const std::string_view station = body_view.substr(marker_pos, str_len);
         // TEMPORARY DIAGNOSTIC: log every station this rewrite pass looks at, whether or not
         // it ends up being rewritten, so a real failing join can be inspected end-to-end.
-        LOG_INFO(Service_SSL, "[Nextendo] [diag] {} saw station: {}", method_name, station);
+        LOG_DEBUG(Service_SSL, "[Nextendo] [diag] {} saw station: {}", method_name, station);
         if (StationNeedsExternalIp(station)) {
             matches.push_back({
                 .length_field_pos = length_field_pos,
@@ -134,7 +134,7 @@ std::vector<Match> FindMatches(std::span<const u8> body, std::array<u8, 4> ext_i
             const auto addr_only = addr_pos == std::string_view::npos
                                         ? std::string_view{}
                                         : station.substr(addr_start, addr_end - addr_start);
-            LOG_INFO(Service_SSL, "[Nextendo] [diag] {} station NOT rewritten (address={}, "
+            LOG_DEBUG(Service_SSL, "[Nextendo] [diag] {} station NOT rewritten (address={}, "
                                    "private={}, natf found={})",
                      method_name, addr_only, IsPrivateIPv4(addr_only),
                      station.find("natf=") != std::string_view::npos);
@@ -177,25 +177,25 @@ bool TryFixupStationAddress(std::span<const u8> input, std::vector<u8>& output) 
     }
     // TEMPORARY DIAGNOSTIC: from here on this looked like a real WS binary frame -- log every
     // rejection reason downstream so a call that never reaches FindMatches can still be traced.
-    LOG_INFO(Service_SSL, "[Nextendo] [diag2] WS binary frame candidate, {} bytes", input.size());
+    LOG_DEBUG(Service_SSL, "[Nextendo] [diag2] WS binary frame candidate, {} bytes", input.size());
     const bool masked = (input[1] & 0x80) != 0;
     u64 ws_len = input[1] & 0x7F;
     size_t pos = 2;
     if (ws_len == 126) {
         if (input.size() < pos + 2) {
-            LOG_INFO(Service_SSL, "[Nextendo] [diag2] reject: truncated ext length");
+            LOG_DEBUG(Service_SSL, "[Nextendo] [diag2] reject: truncated ext length");
             return false;
         }
         ws_len = (static_cast<u64>(input[pos]) << 8) | input[pos + 1];
         pos += 2;
     } else if (ws_len == 127) {
-        LOG_INFO(Service_SSL, "[Nextendo] [diag2] reject: 64-bit ext length (ws_len==127)");
+        LOG_DEBUG(Service_SSL, "[Nextendo] [diag2] reject: 64-bit ext length (ws_len==127)");
         return false; // not expected for these small RMC packets; don't guess
     }
     std::array<u8, 4> mask_key{};
     if (masked) {
         if (input.size() < pos + 4) {
-            LOG_INFO(Service_SSL, "[Nextendo] [diag2] reject: truncated mask key");
+            LOG_DEBUG(Service_SSL, "[Nextendo] [diag2] reject: truncated mask key");
             return false;
         }
         std::memcpy(mask_key.data(), input.data() + pos, 4);
@@ -233,7 +233,7 @@ bool TryFixupStationAddress(std::span<const u8> input, std::vector<u8>& output) 
     }
     const u16 type_flags = ReadU16LE(ws_payload, 8);
     if ((type_flags & 0xF) != 2) {
-        LOG_INFO(Service_SSL, "[Nextendo] [diag2] reject: not a DATA packet (type_flags=0x{:04x})",
+        LOG_DEBUG(Service_SSL, "[Nextendo] [diag2] reject: not a DATA packet (type_flags=0x{:04x})",
                  type_flags);
         return false; // only DATA packets carry RMC
     }
@@ -242,37 +242,37 @@ bool TryFixupStationAddress(std::span<const u8> input, std::vector<u8>& output) 
 
     // --- RMC ---
     if (rmc.size() < 5) {
-        LOG_INFO(Service_SSL, "[Nextendo] [diag2] reject: RMC too short ({} bytes)", rmc.size());
+        LOG_DEBUG(Service_SSL, "[Nextendo] [diag2] reject: RMC too short ({} bytes)", rmc.size());
         return false;
     }
     const u32 rmc_len = ReadU32LE(rmc, 0);
     if (rmc_len != rmc.size() - 4) {
-        LOG_INFO(Service_SSL, "[Nextendo] [diag2] reject: RMC length mismatch (rmc_len={}, actual={})",
+        LOG_DEBUG(Service_SSL, "[Nextendo] [diag2] reject: RMC length mismatch (rmc_len={}, actual={})",
                  rmc_len, rmc.size() - 4);
         return false;
     }
     const u8 proto_byte = rmc[4];
     if ((proto_byte & 0x80) == 0) {
-        LOG_INFO(Service_SSL, "[Nextendo] [diag2] reject: RMC response, not request (proto_byte=0x{:02x})",
+        LOG_DEBUG(Service_SSL, "[Nextendo] [diag2] reject: RMC response, not request (proto_byte=0x{:02x})",
                  proto_byte);
         return false; // only requests carry an outgoing station -- not a response
     }
     const u16 protocol = proto_byte & 0x7F;
     if (protocol != 0x0B && protocol != 0x6D) {
-        LOG_INFO(Service_SSL, "[Nextendo] [diag2] reject: protocol 0x{:02x} not SecureConnection/MatchmakeExtension",
+        LOG_DEBUG(Service_SSL, "[Nextendo] [diag2] reject: protocol 0x{:02x} not SecureConnection/MatchmakeExtension",
                  protocol);
         return false; // SecureConnection or MatchmakeExtension only
     }
     if (rmc.size() < 5 + 8) {
-        LOG_INFO(Service_SSL, "[Nextendo] [diag2] reject: RMC too short for method field");
+        LOG_DEBUG(Service_SSL, "[Nextendo] [diag2] reject: RMC too short for method field");
         return false;
     }
     const u32 method = ReadU32LE(rmc, 9);
-    LOG_INFO(Service_SSL, "[Nextendo] [diag2] RMC request: protocol=0x{:02x} method=0x{:x}", protocol,
+    LOG_DEBUG(Service_SSL, "[Nextendo] [diag2] RMC request: protocol=0x{:02x} method=0x{:x}", protocol,
              method);
     if (protocol == 0x0B) {
         if (method != 0x1 && method != 0x7) {
-            LOG_INFO(Service_SSL, "[Nextendo] [diag2] reject: SecureConnection method 0x{:x} not Register/ReplaceURL",
+            LOG_DEBUG(Service_SSL, "[Nextendo] [diag2] reject: SecureConnection method 0x{:x} not Register/ReplaceURL",
                      method);
             return false; // Register(1) / ReplaceURL(7) only
         }
@@ -288,7 +288,7 @@ bool TryFixupStationAddress(std::span<const u8> input, std::vector<u8>& output) 
         // at. Confirmed 2026-08-19: server logs show every matchmake call in every test as proto=0x6d method=40
         // (0x28), and the host side consistently never completes its NAT report -- exactly this gap.
         if (method != 0x26 && method != 0x27 && method != 0x28) {
-            LOG_INFO(Service_SSL, "[Nextendo] [diag2] reject: MatchmakeExtension method 0x{:x} not Create/Join/AutoMatchmake",
+            LOG_DEBUG(Service_SSL, "[Nextendo] [diag2] reject: MatchmakeExtension method 0x{:x} not Create/Join/AutoMatchmake",
                      method);
             return false;
         }
@@ -303,7 +303,7 @@ bool TryFixupStationAddress(std::span<const u8> input, std::vector<u8>& output) 
                                                                      : "MatchmakeExtension.AutoMatchmakeWithParam");
     // TEMPORARY DIAGNOSTIC: confirm this packet type is actually being intercepted at all,
     // independent of whether any station inside it needs rewriting.
-    LOG_INFO(Service_SSL, "[Nextendo] [diag] intercepted outgoing {} ({} byte body)", method_name,
+    LOG_DEBUG(Service_SSL, "[Nextendo] [diag] intercepted outgoing {} ({} byte body)", method_name,
               body.size());
 
     const auto matches = FindMatches(body, *ext_ip_opt, method_name);

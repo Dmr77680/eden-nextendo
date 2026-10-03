@@ -1188,7 +1188,7 @@ std::pair<s32, Errno> BSD_USA::RecvFromImpl(s32 fd, u32 flags, std::vector<u8>& 
                 static std::atomic<u32> rx_count{0};
                 const u32 n = ++rx_count;
                 if (n <= 60 || n % 500 == 0) {
-                    LOG_INFO(Service, "[Nextendo][UDP] RecvFrom #{} fd={} len={} from {}:{}", n, fd,
+                    LOG_DEBUG(Service, "[Nextendo][UDP] RecvFrom #{} fd={} len={} from {}:{}", n, fd,
                              ret, Network::IPv4AddressToString(addr_in.ip), addr_in.portno);
                 }
             }
@@ -1237,7 +1237,7 @@ std::pair<s32, Errno> BSD_USA::SendToImpl(s32 fd, u32 flags, std::span<const u8>
         if (n <= 60 || n % 500 == 0 || send_result.first < 0) {
             static std::atomic<u32> err_count{0};
             if (send_result.first >= 0 || ++err_count <= 30) {
-                LOG_INFO(Service, "[Nextendo][UDP] SendTo #{} fd={} len={} to {}:{} -> ret={} errno={}",
+                LOG_DEBUG(Service, "[Nextendo][UDP] SendTo #{} fd={} len={} to {}:{} -> ret={} errno={}",
                          n, fd, message.size(), Network::IPv4AddressToString(p_addr_in->ip),
                          p_addr_in->portno, send_result.first, static_cast<s32>(send_result.second));
             }

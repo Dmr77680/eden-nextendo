@@ -233,8 +233,6 @@ std::string BuildIdToken(const std::string& installed_version) {
         const std::string tok = Common::NextendoAccount::GetToken();
         if (!tok.empty()) {
             nnex_claim = fmt::format(R"("nnex":"{}",)", tok);
-            LOG_INFO(Service_ACC, "[Nextendo] nnex claim: token_len={} jwt_like={} dots={}", tok.size(),
-                     tok.rfind("eyJ", 0) == 0, std::count(tok.begin(), tok.end(), '.'));
         }
     }
 

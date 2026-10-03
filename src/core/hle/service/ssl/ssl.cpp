@@ -29,19 +29,7 @@ enum class CertificateFormat : u32 {
     Der = 2,
 };
 
-// [Nextendo] Debug helper: hex + printable-ASCII dump of the first max_bytes bytes.
-static std::string NextendoDump(std::span<const u8> data, size_t max_bytes) {
-    static constexpr char kHex[] = "0123456789abcdef";
-    const size_t n = (std::min)(data.size(), max_bytes);
-    std::string hex;
-    std::string txt;
-    for (size_t i = 0; i < n; ++i) {
-        hex += kHex[data[i] >> 4];
-        hex += kHex[data[i] & 0xF];
-        txt += (data[i] >= 0x20 && data[i] < 0x7F) ? static_cast<char>(data[i]) : '.';
-    }
-    return hex + " | " + txt;
-}
+// DEN_LOGS_LIGHT: ancien dump hexadecimal du trafic SSL supprime (confidentialite + performances).
 
 // This is nn::ssl::sf::ContextOption
 enum class ContextOption : u32 {
@@ -257,7 +245,7 @@ private:
 
     Result SetIoMode(u32 input_mode) {
         auto mode = IoMode(input_mode);
-        LOG_INFO(Service_SSL, "[Nextendo] SetIoMode called, mode={}", input_mode);
+        LOG_DEBUG(Service_SSL, "[Nextendo] SetIoMode called, mode={}", input_mode);
         ASSERT(mode == IoMode::Blocking || mode == IoMode::NonBlocking);
         R_UNLESS(socket, ResultNoSocket);
         const bool non_block = mode == IoMode::NonBlocking;
@@ -330,12 +318,8 @@ private:
         size_t tmp{};
         auto const res = backend->Read(&tmp, data);
         *out_size = u32(tmp);
-        LOG_INFO(Service_SSL, "[Nextendo] Read: buffer={} got={} result={}:{}", data.size(), tmp,
+        LOG_DEBUG(Service_SSL, "[Nextendo] Read: buffer={} got={} result={}:{}", data.size(), tmp,
                  static_cast<u32>(res.GetModule()), res.GetDescription());
-        if (tmp > 0) {
-            LOG_INFO(Service_SSL, "[Nextendo] Read data: {}",
-                     NextendoDump(std::span<const u8>(data.data(), tmp), 600));
-        }
         return res;
     }
 
@@ -348,8 +332,7 @@ private:
         const bool did_rewrite = TryFixupStationAddress(in_data, rewritten);
         const std::span<const u8> send_data = did_rewrite ? std::span<const u8>(rewritten) : in_data;
         auto const res = backend->Write(&tmp, send_data);
-        LOG_INFO(Service_SSL, "[Nextendo] Write head: {}", NextendoDump(in_data, 12));
-        LOG_INFO(Service_SSL, "[Nextendo] Write: size={} wrote={} rewrite={} result={}:{}",
+        LOG_DEBUG(Service_SSL, "[Nextendo] Write: size={} wrote={} rewrite={} result={}:{}",
                  in_data.size(), tmp, did_rewrite, static_cast<u32>(res.GetModule()),
                  res.GetDescription());
         *out_size = (did_rewrite && res.IsSuccess()) ? u32(in_data.size()) : u32(tmp);
@@ -418,7 +401,7 @@ private:
     }
 
     Result SetOption(s32 value, OptionType option) {
-        LOG_INFO(Service_SSL, "[Nextendo] SetOption called, option={}, value={}",
+        LOG_DEBUG(Service_SSL, "[Nextendo] SetOption called, option={}, value={}",
                  static_cast<u32>(option), value);
         switch (option) {
         case OptionType::DoNotCloseSocket:
