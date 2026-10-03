@@ -184,7 +184,18 @@ class GameAdapter(private val activity: AppCompatActivity) :
             "0100770008dd8000" to "1.4.0",  // Monster Hunter Generations Ultimate
             "010047700d540000" to "2.0.1",  // Clubhouse Games: 51 Worldwide Classics
             "0100c6f01c4f8000" to "1.3.0",  // METAL GEAR SOLID: Peace Walker
-            "01006fe013472000" to "1.1.1"   // Mario Party Superstars
+            "01006fe013472000" to "1.1.1",  // Mario Party Superstars
+            "01006bd001e06000" to "1.0.17", // Minecraft: Nintendo Switch Edition
+            "0100ad9012510000" to "1.1.0",  // PAC-MAN 99
+            "0100f9f00c696000" to "1.0.15", // Crash Team Racing Nitro-Fueled
+            "01001b300b9be000" to "2.7.7.92380", // Diablo III: Eternal Collection
+            "01006fd0080b2000" to "1.0.19", // Overcooked! 2
+            "0100c9a00ece6000" to "4.2.0",  // Nintendo 64 - Nintendo Classics
+            "0100000000010000" to "1.4.1",  // Super Mario Odyssey (Balloon World)
+            "0100a3d008c5c000" to "4.0.0",  // Pokemon Scarlet
+            "01008f6008c5e000" to "4.0.0",  // Pokemon Violet
+            "0100f43008c44000" to "2.0.2",  // Pokemon Legends: Z-A
+            "0100c9c00e25c000" to "4.0.0"   // Mario Golf: Super Rush
         )
 
         private fun displayTitle(model: Game): CharSequence {
