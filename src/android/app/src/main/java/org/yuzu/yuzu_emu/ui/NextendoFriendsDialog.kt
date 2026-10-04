@@ -86,6 +86,12 @@ object NextendoFriendsDialog {
         }
     }
 
+    // DEN_SIGNIN_WARN : vrai si le jeu (id de titre hexa) fait partie des jeux Nextendo connus
+    fun isNextendoTitle(hexId: String): Boolean {
+        val id = hexId.trim().lowercase().removePrefix("0x")
+        return remoteNames.containsKey(id) || KNOWN_TITLES.containsKey(id)
+    }
+
     private fun gameName(appId: String, appName: String): String {
         if (appName.isNotEmpty()) return appName
         val id = appId.trim().lowercase().removePrefix("0x")

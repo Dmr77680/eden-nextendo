@@ -1933,4 +1933,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="nextendo_remove">Remove</string>
     <string name="nextendo_remove_confirm">Remove this friend?</string>
     <string name="nextendo_friend_removed">Friend removed</string>
+    <string name="nextendo_signin_required_title">Not signed in to Nextendo</string>
+    <string name="nextendo_signin_required_message">This game plays online through Nextendo, and you are not signed in. Without signing in, the game will show error 2306-0802. Sign in first, then launch the game again.</string>
+    <string name="nextendo_launch_anyway">Launch anyway</string>
 </resources>

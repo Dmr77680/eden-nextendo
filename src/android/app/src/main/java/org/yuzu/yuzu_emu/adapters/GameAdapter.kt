@@ -331,7 +331,7 @@ class GameAdapter(private val activity: AppCompatActivity) :
                 return
             }
 
-            val launch: () -> Unit = {
+            val launchNow: () -> Unit = {
                 val preferences =
                     PreferenceManager.getDefaultSharedPreferences(YuzuApplication.appContext)
                 preferences.edit {
@@ -358,6 +358,31 @@ class GameAdapter(private val activity: AppCompatActivity) :
 
                 val action = HomeNavigationDirections.actionGlobalEmulationActivity(game, true)
                 binding.root.findNavController().navigate(action)
+            }
+
+            // DEN_SIGNIN_WARN : jeu Nextendo lance sans compte connecte -> erreur 2306-0802 assuree
+            val launch: () -> Unit = {
+                val needsSignIn = try {
+                    NativeLibrary.nextendoAccountName().isEmpty() &&
+                        org.yuzu.yuzu_emu.ui.NextendoFriendsDialog.isNextendoTitle(game.programIdHex)
+                } catch (_: Throwable) {
+                    false
+                }
+                if (needsSignIn) {
+                    MaterialAlertDialogBuilder(activity)
+                        .setTitle(R.string.nextendo_signin_required_title)
+                        .setMessage(R.string.nextendo_signin_required_message)
+                        .setPositiveButton(R.string.nextendo_sign_in) { _: DialogInterface?, _: Int ->
+                            org.yuzu.yuzu_emu.utils.NextendoSignInService.start(activity)
+                        }
+                        .setNeutralButton(R.string.nextendo_launch_anyway) { _: DialogInterface?, _: Int ->
+                            launchNow()
+                        }
+                        .setNegativeButton(android.R.string.cancel) { _, _ -> }
+                        .show()
+                } else {
+                    launchNow()
+                }
             }
 
             if (NativeLibrary.gameRequiresFirmware(game.programId) && !NativeLibrary.isFirmwareAvailable()) {

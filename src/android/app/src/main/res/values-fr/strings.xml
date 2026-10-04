@@ -1130,4 +1130,7 @@
     <string name="nextendo_remove">Supprimer</string>
     <string name="nextendo_remove_confirm">Supprimer cet ami ?</string>
     <string name="nextendo_friend_removed">Ami supprimé</string>
+    <string name="nextendo_signin_required_title">Non connecté à Nextendo</string>
+    <string name="nextendo_signin_required_message">Ce jeu se joue en ligne via Nextendo et vous n\'êtes pas connecté. Sans connexion, le jeu affichera l\'erreur 2306-0802. Connectez-vous d\'abord, puis relancez le jeu.</string>
+    <string name="nextendo_launch_anyway">Lancer quand même</string>
 </resources>
